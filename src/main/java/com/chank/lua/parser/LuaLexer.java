@@ -26,7 +26,7 @@ import com.chank.lua.util.ZIOUtil;
  */
 public final class LuaLexer {
 
-    private static final String[] LuaTokens = new String[] {
+    private static final String[] LUA_TOKENS = new String[] {
             "and", "break", "do", "else", "elseif",
             "end", "false", "for", "function", "goto", "if",
             "in", "local", "nil", "not", "or", "repeat",
