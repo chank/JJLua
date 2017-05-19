@@ -64,6 +64,8 @@ public final class LuaLexer {
 
     }
 
+    public static final int FIRST_RESERVED = 257;
+
     private static void saveAndNext(LexState ls) {
         save(ls, ls.current);
         next(ls);
@@ -270,17 +272,25 @@ public final class LuaLexer {
         while (ls.current != del) {
             switch (ls.current) {
                 case ZIO.EOZ:
+                    lexError(ls, "unfinished string", Reserved.TK_EOS);
                     break;
                 case '\n':
                 case '\r':
+                    lexError(ls, "unfinished string", Reserved.TK_STRING);
+                    break;
                 case '\\':
+                    int c;
+                    saveAndNext(ls);
+                    switch (ls.current) {
+                        case 'a':
+                            c = 'a';
+                    }
                 default:
             }
         }
     }
 
-    private static final void lexError(LexState ls, String msg, int token) {
-
+    private static final void lexError(LexState ls, String msg, Reserved token) {
     }
 
 }
