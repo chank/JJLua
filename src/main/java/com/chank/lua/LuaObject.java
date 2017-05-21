@@ -41,16 +41,16 @@ public class LuaObject {
     }
 
     public static final class Proto extends GCObject {
-        private byte numParams;
-        private byte isVarArg;
-        private byte maxStackSize;
-        private int sizeUpValues;
-        private int sizeK;
-        private int sizeCode;
-        private int sizeLineInfo;
-        private int sizeP;
-        private int sizeLocVars;
-        private int lineDefined;
-        private int lastLineDefined;
+        public byte numParams;
+        public byte isVarArg;
+        public byte maxStackSize;
+        public int sizeUpValues;
+        public int sizeK;
+        public int sizeCode;
+        public int sizeLineInfo;
+        public int sizeP;
+        public int sizeLocVars;
+        public int lineDefined;
+        public int lastLineDefined;
     }
 }

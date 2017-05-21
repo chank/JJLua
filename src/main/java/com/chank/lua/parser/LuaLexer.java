@@ -17,6 +17,7 @@
 package com.chank.lua.parser;
 
 import com.chank.lua.LuaObject;
+import com.chank.lua.LuaState;
 import com.chank.lua.LuaTValue;
 import com.chank.lua.util.ZIO;
 import com.chank.lua.util.ZIOUtil;
@@ -38,9 +39,9 @@ public final class LuaLexer {
             "<number>", "<integer>", "<name>", "<string>"
     };
 
-    private static final class Token {
-        private int token;
-        private SemInfo semInfo;
+    static final class Token {
+        int token;
+        SemInfo semInfo;
     }
 
     private static final class SemInfo {
@@ -54,8 +55,10 @@ public final class LuaLexer {
         int current;
         private int lineNumber;
         private int lastLine;
-        private Token t;
+        Token t;
         private Token lookahead;
+        LuaParser.FuncState fs;
+        LuaState l;
         ZIO z;
         ZIO.MBuffer buff;
 
@@ -319,7 +322,11 @@ public final class LuaLexer {
         saveAndNext(ls);
     }
 
-    private static void lexError(LexState ls, String msg, int token) {
+    static void luaXSyntaxError(LexState ls, final String msg) {
+        lexError(ls, msg, ls.t.token);
+    }
+
+    private static void lexError(LexState ls, final String msg, int token) {
     }
 
     public static int llex(LexState ls, SemInfo semInfo) throws Exception {
