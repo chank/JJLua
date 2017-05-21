@@ -49,24 +49,24 @@ public final class LuaLexer {
         public String ts;
     }
 
-    public static final class LexState {
+    static final class LexState {
 
         int current;
         private int lineNumber;
         private int lastLine;
         private Token t;
         private Token lookahead;
-        public ZIO z;
-        public ZIO.MBuffer buff;
+        ZIO z;
+        ZIO.MBuffer buff;
 
-        public final int incLineNumber() {
+        final int incLineNumber() {
             lineNumber += 1;
             return lineNumber;
         }
 
     }
 
-    public static final int FIRST_RESERVED = 257;
+    static final int FIRST_RESERVED = 257;
 
     private static void saveAndNext(LexState ls) {
         save(ls, ls.current);
@@ -80,7 +80,7 @@ public final class LuaLexer {
         ls.current = ZIOUtil.getChar(ls.z);
     }
 
-    private static final boolean checkNext1(LexState ls, int c) {
+    private static boolean checkNext1(LexState ls, int c) {
         if (ls.current == c) {
             next(ls);
             return true;
@@ -89,7 +89,7 @@ public final class LuaLexer {
         }
     }
 
-    private static final boolean checkNext2(LexState ls, String set) {
+    private static boolean checkNext2(LexState ls, String set) {
         assert set.length() < 2;
         if (ls.current == set.charAt(0) || ls.current == set.charAt(1)) {
             saveAndNext(ls);
@@ -99,30 +99,30 @@ public final class LuaLexer {
         }
     }
 
-    private static final int toLower(int c) {
+    private static int toLower(int c) {
         return c | ('A' ^ 'a');
     }
 
-    private static final boolean isAlphanumericNum(int c) {
+    private static boolean isAlphanumericNum(int c) {
         return (c >= '0' && c <= '9') ||
                 (c >= 'a' && c <= 'z') ||
                 (c >= 'A' && c <= 'Z') ||
                 (c == '_');
     }
 
-    private static final boolean isAlpha(int c) {
+    private static boolean isAlpha(int c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 
-    private static final boolean isDigit(int c) {
+    private static boolean isDigit(int c) {
         return c >= '0' && c <= '9';
     }
 
-    private static final boolean isHexDigit(int n) {
+    private static boolean isHexDigit(int n) {
         return (n >= '0' && n <= '9') || (n >= 'a' && n <= 'f') || (n >= 'A' && n <= 'F');
     }
 
-    private static final int readNumeral(LexState ls, SemInfo semInfo) {
+    private static int readNumeral(LexState ls, SemInfo semInfo) {
         LuaTValue obj;
         String expo = "Ee";
         int first = ls.current;
@@ -146,7 +146,7 @@ public final class LuaLexer {
         return 1;
     }
 
-    private static final int skipSep(LexState ls) {
+    private static int skipSep(LexState ls) {
         int count = 0;
         int s = ls.current;
         assert  s == '[' || s == ']';
@@ -158,11 +158,11 @@ public final class LuaLexer {
         return (ls.current == s) ? count : (-count) - 1;
     }
 
-    private static final boolean isCurrentNewline(LexState ls) {
+    private static boolean isCurrentNewline(LexState ls) {
         return ls.current == '\n' || ls.current == '\r';
     }
 
-    private static final void incLineNumber(LexState ls) throws Exception {
+    private static void incLineNumber(LexState ls) throws Exception {
         int old = ls.current;
         assert isCurrentNewline(ls);
         next(ls); // skip '\n' or '\r'
@@ -172,7 +172,7 @@ public final class LuaLexer {
             throw new Exception("chunk has too many lines");
     }
 
-    private static final void readLongString(LexState ls, SemInfo semInfo, int sep) throws Exception {
+    private static void readLongString(LexState ls, SemInfo semInfo, int sep) throws Exception {
         int line = ls.lineNumber;
         saveAndNext(ls);
         if (isCurrentNewline(ls))
@@ -204,34 +204,34 @@ public final class LuaLexer {
         }
     }
 
-    private static final void escCheck(LexState ls, boolean c, String msg) {
+    private static void escCheck(LexState ls, boolean c, String msg) {
         if (!c) {
             if (ls.current != EOZ)
                 saveAndNext(ls);
         }
     }
 
-    private static final int hexValue(int c) {
+    private static int hexValue(int c) {
         if (isDigit(c))
             return c - '0';
         else
             return (toLower(c) - 'a') + 10;
     }
 
-    private static final int getHexa(LexState ls) {
+    private static int getHexa(LexState ls) {
         saveAndNext(ls);
         escCheck(ls, isHexDigit(ls.current), "hexadecimal digit expected");
         return hexValue(ls.current);
     }
 
-    private static final int readHexaEsc(LexState ls) {
+    private static int readHexaEsc(LexState ls) {
         int r = getHexa(ls);
         r = (r << 4) +getHexa(ls);
         ZIOUtil.buffRemove(ls.buff, 2);
         return r;
     }
 
-    private static final long readUTF8Esc(LexState ls) {
+    private static long readUTF8Esc(LexState ls) {
         long r;
         int i = 4;
         saveAndNext(ls);
@@ -250,14 +250,14 @@ public final class LuaLexer {
         return r;
     }
 
-    private static final void utf8Esc(LexState ls) {
+    private static void utf8Esc(LexState ls) {
         byte[] buff = new byte[LuaObject.UTF8BUFFSIZE];
         int n = LuaObject.utf8Esc(buff, readUTF8Esc(ls));
         for (; n > 0; n--)
             save(ls, buff[LuaObject.UTF8BUFFSIZE - n]);
     }
 
-    private static final int readDecEsc(LexState ls) {
+    private static int readDecEsc(LexState ls) {
         int i;
         int r = 0;
         for (i = 0; i < 3 && isDigit(ls.current); i++) {
@@ -269,7 +269,7 @@ public final class LuaLexer {
         return r;
     }
 
-    private static final void readString(LexState ls, int del, SemInfo semInfo) throws Exception {
+    private static void readString(LexState ls, int del, SemInfo semInfo) throws Exception {
         saveAndNext(ls);
         while (ls.current != del) {
             switch (ls.current) {
@@ -308,7 +308,7 @@ public final class LuaLexer {
         saveAndNext(ls);
     }
 
-    private static final void lexError(LexState ls, String msg, Reserved token) {
+    private static void lexError(LexState ls, String msg, Reserved token) {
     }
 
     public static int llex(LexState ls, SemInfo semInfo) throws Exception {
