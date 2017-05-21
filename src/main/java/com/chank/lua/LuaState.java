@@ -19,7 +19,7 @@ package com.chank.lua;
 /**
  * Created by chank on 2017/2/23.
  */
-public final class LuaState extends GCObject {
+public final class LuaState {
     int nci;
     byte status;
 }

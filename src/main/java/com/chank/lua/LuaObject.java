@@ -40,7 +40,7 @@ public class LuaObject {
         return n;
     }
 
-    public static final class Proto extends GCObject {
+    public static final class Proto {
         public byte numParams;
         public byte isVarArg;
         public byte maxStackSize;

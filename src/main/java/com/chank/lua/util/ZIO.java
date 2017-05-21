@@ -28,7 +28,7 @@ public final class ZIO {
 
     public static final class MBuffer {
         private char[] buffer;
-        private int n;
+        public int n;
         private int buffSize;
 
         public void initBuffer() {
