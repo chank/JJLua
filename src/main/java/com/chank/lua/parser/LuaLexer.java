@@ -74,6 +74,17 @@ public final class LuaLexer {
     }
 
     private static void save(LexState ls, int c) {
+        ZIO.MBuffer b = ls.buff;
+        int buffLen = b.getBuffLen();
+        if (buffLen + 1 > b.getBuffSize()) {
+            int newSize;
+            if (b.getBuffSize() >= Integer.MAX_VALUE / 2) {
+                lexError(ls, "lexical element too long", 0);
+            }
+            newSize = b.getBuffSize() * 2;
+            b.resizeBuffer(newSize);
+        }
+        b.getBuffer()[buffLen++] = (char)c;
     }
 
     private static void next(LexState ls) {
@@ -274,11 +285,11 @@ public final class LuaLexer {
         while (ls.current != del) {
             switch (ls.current) {
                 case EOZ:
-                    lexError(ls, "unfinished string", Reserved.TK_EOS);
+                    lexError(ls, "unfinished string", Reserved.TK_EOS.getValue());
                     break;
                 case '\n':
                 case '\r':
-                    lexError(ls, "unfinished string", Reserved.TK_STRING);
+                    lexError(ls, "unfinished string", Reserved.TK_STRING.getValue());
                     break;
                 case '\\':
                     int c;
@@ -308,10 +319,11 @@ public final class LuaLexer {
         saveAndNext(ls);
     }
 
-    private static void lexError(LexState ls, String msg, Reserved token) {
+    private static void lexError(LexState ls, String msg, int token) {
     }
 
     public static int llex(LexState ls, SemInfo semInfo) throws Exception {
+        ls.buff.resetBuffer();
         for (;;) {
             switch (ls.current) {
                 case '\n': case '\r': {
@@ -345,7 +357,7 @@ public final class LuaLexer {
                         readLongString(ls, semInfo, sep);
                         return Reserved.TK_STRING.getValue();
                     } else if (sep != -1) {
-                        lexError(ls, "Invalid long string delimiter", Reserved.TK_STRING);
+                        lexError(ls, "Invalid long string delimiter", Reserved.TK_STRING.getValue());
                     }
                     return '[';
                 }

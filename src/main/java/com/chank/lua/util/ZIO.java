@@ -27,8 +27,39 @@ public final class ZIO {
     private byte[] p;
 
     public static final class MBuffer {
-        public byte[] buffer;
-        public int n;
-        public int buffSize;
+        private char[] buffer;
+        private int n;
+        private int buffSize;
+
+        public void initBuffer() {
+            buffer = null;
+            buffSize = 0;
+        }
+
+        public void buffRemove(MBuffer buff, int i) {
+            n -= i;
+        }
+
+        public void resetBuffer() {
+            n = 0;
+        }
+
+        public char[] getBuffer() {
+            return buffer;
+        }
+
+        public int getBuffSize() {
+            return buffSize;
+        }
+
+        public int getBuffLen() {
+            return n;
+        }
+
+
+        public void resizeBuffer(int size) {
+        }
+
     }
+
 }
