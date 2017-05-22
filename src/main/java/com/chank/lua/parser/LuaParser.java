@@ -19,6 +19,8 @@ package com.chank.lua.parser;
 import com.chank.lua.LuaObject;
 import com.chank.lua.LuaState;
 
+import java.util.function.Predicate;
+
 /**
  * Created by chank on 2017/2/23.
  */
@@ -64,11 +66,34 @@ public final class LuaParser {
         }
     }
 
-    public static int testNext(LuaLexer.LexState ls, int c) {
-        if (ls.t.token == c) {
-            return 1;
-        } else {
-            return 0;
+    public static boolean testNext(LuaLexer.LexState ls, int c) {
+        return ls.t.token == c;
+    }
+
+    public static void check(LuaLexer.LexState ls, int c) {
+        if (ls.t.token != c) {
+            errorExpected(ls, c);
+        }
+    }
+
+    public static void checkNext(LuaLexer.LexState ls, int c) throws Exception {
+        check(ls, c);
+        LuaLexer.luaXNext(ls);
+    }
+
+    public static void checkCondition(LuaLexer.LexState ls, boolean c, String msg) {
+        if (!c) {
+            LuaLexer.luaXSyntaxError(ls, msg);
+        }
+    }
+
+    public static void checkMatch(LuaLexer.LexState ls, int what, int who, int where) {
+        if (!testNext(ls, what)) {
+            if (where == ls.lineNumber) {
+                errorExpected(ls, what);
+            } else {
+                LuaLexer.luaXSyntaxError(ls, String.format("%s expected (to close %s at line %d)", what, who, where));
+            }
         }
     }
 

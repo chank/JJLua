@@ -53,7 +53,7 @@ public final class LuaLexer {
     static final class LexState {
 
         int current;
-        private int lineNumber;
+        int lineNumber;
         private int lastLine;
         Token t;
         private Token lookahead;
@@ -456,7 +456,7 @@ public final class LuaLexer {
         }
     }
 
-    private void luaXNext(LexState ls) throws Exception {
+    static void luaXNext(LexState ls) throws Exception {
         ls.lastLine = ls.lineNumber;
         if (ls.lookahead.token != Reserved.TK_EOS.getValue()) {
             ls.t = ls.lookahead;
@@ -466,7 +466,7 @@ public final class LuaLexer {
         }
     }
 
-    private int luaXLookahead(LexState ls) throws Exception {
+    private static int luaXLookahead(LexState ls) throws Exception {
         assert (ls.lookahead.token == Reserved.TK_EOS.getValue());
         ls.lookahead.token = llex(ls, ls.lookahead.semInfo);
         return ls.lookahead.token;
