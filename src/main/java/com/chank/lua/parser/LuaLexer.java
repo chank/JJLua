@@ -50,25 +50,6 @@ public final class LuaLexer {
         public String ts;
     }
 
-    static final class LexState {
-
-        int current;
-        int lineNumber;
-        private int lastLine;
-        Token t;
-        private Token lookahead;
-        LuaParser.FuncState fs;
-        LuaState l;
-        ZIO z;
-        ZIO.MBuffer buff;
-
-        final int incLineNumber() {
-            lineNumber += 1;
-            return lineNumber;
-        }
-
-    }
-
     static final int FIRST_RESERVED = 257;
 
     private static void saveAndNext(LexState ls) {

@@ -19,8 +19,6 @@ package com.chank.lua.parser;
 import com.chank.lua.LuaObject;
 import com.chank.lua.LuaState;
 
-import java.util.function.Predicate;
-
 /**
  * Created by chank on 2017/2/23.
  */
@@ -29,7 +27,7 @@ public final class LuaParser {
     static final class FuncState {
         private LuaObject.Proto f;
         private FuncState Prev;
-        private LuaLexer.LexState ls;
+        private LexState ls;
     }
 
     public static final int MAX_VARS = 200;
@@ -43,12 +41,12 @@ public final class LuaParser {
         public boolean isLoop;
     }
 
-    public static void semError(LuaLexer.LexState ls, final String msg) {
+    public static void semError(LexState ls, final String msg) {
         ls.t.token = 0;
         LuaLexer.luaXSyntaxError(ls, msg);
     }
 
-    public static void errorExpected(LuaLexer.LexState ls, int token) {
+    public static void errorExpected(LexState ls, int token) {
     }
 
     public static void errorLimit(FuncState fs, int limit, final String what) {
@@ -66,28 +64,28 @@ public final class LuaParser {
         }
     }
 
-    public static boolean testNext(LuaLexer.LexState ls, int c) {
+    public static boolean testNext(LexState ls, int c) {
         return ls.t.token == c;
     }
 
-    public static void check(LuaLexer.LexState ls, int c) {
+    public static void check(LexState ls, int c) {
         if (ls.t.token != c) {
             errorExpected(ls, c);
         }
     }
 
-    public static void checkNext(LuaLexer.LexState ls, int c) throws Exception {
+    public static void checkNext(LexState ls, int c) throws Exception {
         check(ls, c);
         LuaLexer.luaXNext(ls);
     }
 
-    public static void checkCondition(LuaLexer.LexState ls, boolean c, String msg) {
+    public static void checkCondition(LexState ls, boolean c, String msg) {
         if (!c) {
             LuaLexer.luaXSyntaxError(ls, msg);
         }
     }
 
-    public static void checkMatch(LuaLexer.LexState ls, int what, int who, int where) {
+    public static void checkMatch(LexState ls, int what, int who, int where) {
         if (!testNext(ls, what)) {
             if (where == ls.lineNumber) {
                 errorExpected(ls, what);
