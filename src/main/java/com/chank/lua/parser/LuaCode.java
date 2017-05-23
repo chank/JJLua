@@ -16,27 +16,11 @@
 
 package com.chank.lua.parser;
 
-import com.chank.lua.LuaState;
-import com.chank.lua.util.ZIO;
-
 /**
- * Created by chank on 2017/5/22.
+ * Created by chank on 2017/5/23.
  */
-public final class LexState {
+public final class LuaCode {
 
-    int current;
-    int lineNumber;
-    int lastLine;
-    LuaLexer.Token t;
-    LuaLexer.Token lookahead;
-    LuaParser.FuncState fs;
-    LuaState l;
-    ZIO z;
-    ZIO.MBuffer buff;
-
-    final int incLineNumber() {
-        lineNumber += 1;
-        return lineNumber;
-    }
+    public static final int NO_JUMP = -1;
 
 }

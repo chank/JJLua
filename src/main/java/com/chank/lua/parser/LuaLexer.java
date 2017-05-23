@@ -44,7 +44,7 @@ public final class LuaLexer {
         SemInfo semInfo;
     }
 
-    private static final class SemInfo {
+    static final class SemInfo {
         public double r;
         public int i;
         public String ts;

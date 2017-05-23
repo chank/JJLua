@@ -25,9 +25,20 @@ import com.chank.lua.LuaState;
 public final class LuaParser {
 
     static final class FuncState {
-        private LuaObject.Proto f;
-        private FuncState Prev;
-        private LexState ls;
+        public LuaObject.Proto f;
+        public FuncState Prev;
+        public LexState ls;
+        public BlockCnt bl;
+        public int pc;
+        public int lastTarget;
+        public int jpc;
+        public int nk;
+        public int np;
+        public int firstLocal;
+        public short nLocVars;
+        public char nactvar;
+        public char nups;
+        public char freeReg;
     }
 
     public static final int MAX_VARS = 200;
@@ -39,6 +50,50 @@ public final class LuaParser {
         public char nactVar;
         public char upVal;
         public boolean isLoop;
+    }
+
+    static final class ExpDesc {
+        public ExpressionKind k;
+        public long ival;
+        public double nval;
+        public int info;
+        static final class Ind {
+            public short idx;
+            char t;
+            char vt;
+        }
+        int t;
+        int f;
+    }
+
+    static final class VarDesc {
+        public short idx;
+    }
+
+    static final class LabelDesc {
+        public String name;
+        public int pc;
+        public int line;
+        public char nactvar;
+    }
+
+    static final class LabelList {
+        public LabelDesc arr;
+        public int n;
+        public int size;
+    }
+
+    static final class DynData {
+        static final class ActVar {
+            public VarDesc arr;
+            public int n;
+            public int size;
+        }
+        LabelList gt;
+        LabelList label;
+    }
+
+    static final class BlockCnt {
     }
 
     public static void semError(LexState ls, final String msg) {
@@ -93,6 +148,14 @@ public final class LuaParser {
                 LuaLexer.luaXSyntaxError(ls, String.format("%s expected (to close %s at line %d)", what, who, where));
             }
         }
+    }
+
+    public static String checkName(LexState ls) throws Exception{
+        String ts;
+        check(ls, Reserved.TK_NAME.getValue());
+        ts = ls.t.semInfo.ts;
+        LuaLexer.luaXNext(ls);
+        return ts;
     }
 
 }
