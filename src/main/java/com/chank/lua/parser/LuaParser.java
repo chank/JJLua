@@ -93,9 +93,6 @@ public final class LuaParser {
         LabelList label;
     }
 
-    static final class BlockCnt {
-    }
-
     public static void semError(LexState ls, final String msg) {
         ls.t.token = 0;
         LuaLexer.luaXSyntaxError(ls, msg);
@@ -156,6 +153,16 @@ public final class LuaParser {
         ts = ls.t.semInfo.ts;
         LuaLexer.luaXNext(ls);
         return ts;
+    }
+
+    private static void initExp(ExpDesc e, ExpressionKind k, int i) {
+        e.f = e.t = LuaCode.NO_JUMP;
+        e.k = k;
+        e.info = i;
+    }
+
+    private static void codeString(LexState ls, ExpDesc e, String s) {
+        initExp(e, ExpressionKind.VK, 0);
     }
 
 }

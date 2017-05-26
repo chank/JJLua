@@ -53,4 +53,16 @@ public class LuaObject {
         public int lineDefined;
         public int lastLineDefined;
     }
+
+    public static final class Table {
+        char flags;
+        char lSizeNode;
+        int sizeArray;
+        LuaTValue array;
+    }
+
+    public static final class Node {
+        LuaTValue iVal;
+    }
+
 }

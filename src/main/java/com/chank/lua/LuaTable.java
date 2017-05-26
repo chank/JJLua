@@ -14,28 +14,11 @@
  * limitations under the License.
  */
 
-package com.chank.lua.parser;
-
-import com.chank.lua.LuaObject;
-import com.chank.lua.LuaState;
-import com.chank.lua.LuaTValue;
+package com.chank.lua;
 
 /**
- * Created by chank on 2017/5/23.
+ * Created by chank on 2017/5/26.
  */
-public final class LuaCode {
-
-    public static final int NO_JUMP = -1;
-
-    public static int luaKStringK(LuaParser.FuncState fs, String s) {
-        LuaTValue o = null;
-        return addK(fs, o, o);
-    }
-
-    private static int addK(LuaParser.FuncState fs, LuaTValue key, LuaTValue v) {
-        LuaState l = fs.ls.l;
-        LuaObject.Proto f = fs.f;
-        return 0;
-    }
+public final class LuaTable {
 
 }
