@@ -52,17 +52,53 @@ public class LuaObject {
         public int sizeLocVars;
         public int lineDefined;
         public int lastLineDefined;
+        public LuaTValue k;
+        public long[] code;
+        public Proto[] p;
+        public int[] lineInfo;
+        public LocVar[] locVars;
+        public UpValDesc[] upValues;
     }
 
     public static final class Table {
-        char flags;
-        char lSizeNode;
-        int sizeArray;
-        LuaTValue array;
+        public char flags;
+        public char lSizeNode;
+        public int sizeArray;
+        public LuaTValue array;
     }
 
     public static final class Node {
-        LuaTValue iVal;
+        public LuaTValue iVal;
+    }
+
+    public static final class LocVar {
+        public String varName;
+        public int startPC;
+        public int endPC;
+    }
+
+    public static final class UpValDesc {
+        public String name;
+        public char inStack;
+        public char idx;
+    }
+
+    public static class ClosureHeader {
+        public char nupValues;
+    }
+
+    public static final class CClosure extends ClosureHeader {
+        public LuaTValue[] upValue = new LuaTValue[1];
+    }
+
+    public static final class LClosure extends ClosureHeader {
+        public Proto[] p;
+        public LuaFunc.UpVal[] upVals = new LuaFunc.UpVal[1];
+    }
+
+    public static final class Closure {
+        public CClosure c;
+        public LClosure l;
     }
 
 }

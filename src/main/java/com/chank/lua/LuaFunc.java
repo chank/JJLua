@@ -14,34 +14,20 @@
  * limitations under the License.
  */
 
-package com.chank.lua.parser;
-
-import com.chank.lua.LuaObject;
-import com.chank.lua.LuaState;
-import com.chank.lua.util.ZIO;
+package com.chank.lua;
 
 /**
- * Created by chank on 2017/5/22.
+ * Created by chank on 2017/5/28.
  */
-public final class LexState {
+public final class LuaFunc {
 
-    int current;
-    int lineNumber;
-    int lastLine;
-    LuaLexer.Token t;
-    LuaLexer.Token lookahead;
-    LuaParser.FuncState fs;
-    LuaState l;
-    ZIO z;
-    ZIO.MBuffer buff;
-    LuaObject.Table h;
-    LuaParser.DynData dyd;
-    String source;
-    String envn;
-
-    final int incLineNumber() {
-        lineNumber += 1;
-        return lineNumber;
+    public static final class UpVal {
+        LuaTValue v;
+        int refCount;
+        public static final class Open {
+            UpVal next;
+            int touched;
+        }
+        LuaTValue value;
     }
-
 }

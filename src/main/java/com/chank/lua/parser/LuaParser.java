@@ -84,13 +84,14 @@ public final class LuaParser {
     }
 
     static final class DynData {
-        static final class ActVar {
-            public VarDesc arr;
+        public static final class ActVar {
+            public VarDesc[] arr;
             public int n;
             public int size;
         }
-        LabelList gt;
-        LabelList label;
+        public ActVar actVar = new ActVar();
+        public LabelList gt;
+        public LabelList label;
     }
 
     public static void semError(LexState ls, final String msg) {
@@ -147,7 +148,7 @@ public final class LuaParser {
         }
     }
 
-    public static String checkName(LexState ls) throws Exception{
+    public static String strCheckName(LexState ls) throws Exception {
         String ts;
         check(ls, Reserved.TK_NAME.getValue());
         ts = ls.t.semInfo.ts;
@@ -163,6 +164,69 @@ public final class LuaParser {
 
     private static void codeString(LexState ls, ExpDesc e, String s) {
         initExp(e, ExpressionKind.VK, 0);
+    }
+
+    private static void checkName(LexState ls, ExpDesc e) throws Exception {
+        codeString(ls, e, strCheckName(ls));
+    }
+
+    private static int registerLocalVar(LexState ls, String varName) {
+        FuncState fs = ls.fs;
+        LuaObject.Proto f = fs.f;
+        int oldSize = f.sizeLocVars;
+        while (oldSize < f.sizeLocVars) {
+            f.locVars[oldSize++].varName = null;
+        }
+        f.locVars[fs.nLocVars].varName = varName;
+        return fs.nLocVars;
+    }
+
+    private static void newLocalVar(LexState ls, String name) {
+        FuncState fs = ls.fs;
+        DynData dyd = ls.dyd;
+        int reg = registerLocalVar(ls, name);
+        checkLimit(fs, dyd.actVar.n + 1 - fs.firstLocal, MAX_VARS, "local variables");
+        dyd.actVar.arr[dyd.actVar.n++].idx = (short)reg;
+    }
+
+    private static void newLocalVarLiteral(LexState ls, String name, int sz) {
+        newLocalVar(ls, name);
+    }
+
+    public static void newLocalVarLiteral1(LexState ls, String v) {
+        newLocalVarLiteral(ls, v, v.length() - 1);
+    }
+
+    public static LuaObject.LocVar getLocVar(FuncState fs, int i) {
+        int idx = fs.ls.dyd.actVar.arr[fs.firstLocal + i].idx;
+        assert(idx < fs.nLocVars);
+        return fs.f.locVars[idx];
+    }
+
+    public static void adjustLocalVars(LexState ls , int nVars) {
+        FuncState fs = ls.fs;
+        fs.nactvar = (char)(fs.nactvar + nVars);
+        for (; nVars > 0; nVars--) {
+            getLocVar(fs, fs.nactvar - nVars).startPC = fs.pc;
+        }
+    }
+
+    public static void removeVars(FuncState fs, int toLevel) {
+        fs.ls.dyd.actVar.n -= (fs.nactvar - toLevel);
+        while (fs.nactvar > toLevel) {
+            getLocVar(fs, --fs.nactvar).endPC = fs.pc;
+        }
+    }
+
+    public static int searchChupValue(FuncState fs, String name) {
+        int i;
+        LuaObject.UpValDesc[] up = fs.f.upValues;
+        for (i = 0; i < fs.nups; i++) {
+            if (up[i].name.equals(name)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 }
