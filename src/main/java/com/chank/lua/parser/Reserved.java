@@ -19,7 +19,7 @@ package com.chank.lua.parser;
 import static com.chank.lua.parser.LuaLexer.FIRST_RESERVED;
 
 /**
- * Created by chank on 2017/5/19.
+ * Created by Chank on 2017/5/19.
  */
 public enum Reserved {
     TK_AND(FIRST_RESERVED),

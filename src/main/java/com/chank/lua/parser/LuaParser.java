@@ -20,7 +20,7 @@ import com.chank.lua.LuaObject;
 import com.chank.lua.LuaState;
 
 /**
- * Created by chank on 2017/2/23.
+ * Created by Chank on 2017/2/23.
  */
 public final class LuaParser {
 

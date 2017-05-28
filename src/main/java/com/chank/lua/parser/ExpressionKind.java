@@ -17,7 +17,7 @@
 package com.chank.lua.parser;
 
 /**
- * Created by chank on 2017/5/21.
+ * Created by Chank on 2017/5/21.
  */
 public enum ExpressionKind {
     VVOID(0),

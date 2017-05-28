@@ -17,7 +17,7 @@
 package com.chank.lua;
 
 /**
- * Created by chank on 2017/5/26.
+ * Created by Chank on 2017/5/26.
  */
 public final class LuaTable {
 

@@ -21,7 +21,7 @@ import com.chank.lua.LuaState;
 import com.chank.lua.LuaTValue;
 
 /**
- * Created by chank on 2017/5/23.
+ * Created by Chank on 2017/5/23.
  */
 public final class LuaCode {
 
