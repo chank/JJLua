@@ -17,7 +17,7 @@
 package com.chank.lua;
 
 /**
- * Created by Chank on 2017/5/28.
+ * @author Chank
  */
 public final class LuaFunc {
 

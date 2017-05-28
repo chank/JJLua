@@ -21,7 +21,7 @@ import com.chank.lua.LuaState;
 import com.chank.lua.util.ZIO;
 
 /**
- * Created by Chank on 2017/5/22.
+ * @author Chank
  */
 public final class LexState {
 

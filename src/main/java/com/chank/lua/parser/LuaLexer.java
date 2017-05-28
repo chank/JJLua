@@ -25,7 +25,7 @@ import com.chank.lua.util.ZIOUtil;
 import static com.chank.lua.util.ZIO.EOZ;
 
 /**
- * Created by Chank on 2017/2/23.
+ * @author Chank
  */
 public final class LuaLexer {
 
