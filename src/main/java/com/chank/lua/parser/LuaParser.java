@@ -16,6 +16,7 @@
 
 package com.chank.lua.parser;
 
+import com.chank.lua.LuaFunc;
 import com.chank.lua.LuaObject;
 import com.chank.lua.LuaState;
 
@@ -26,7 +27,7 @@ public final class LuaParser {
 
     static final class FuncState {
         public LuaObject.Proto f;
-        public FuncState Prev;
+        public FuncState prev;
         public LexState ls;
         public BlockCnt bl;
         public int pc;
@@ -227,6 +228,74 @@ public final class LuaParser {
             }
         }
         return -1;
+    }
+
+    private static int newUpValue(FuncState fs, String name, ExpDesc v) {
+        LuaObject.Proto f = fs.f;
+        int oldSize = f.sizeUpValues;
+        checkLimit(fs, fs.nups + 1, LuaFunc.MAX_UP_VAL, "upvalues");
+        while(oldSize < f.sizeUpValues) {
+            f.upValues[oldSize++].name = null;
+        }
+        f.upValues[fs.nups].inStack = (v.k == ExpressionKind.VLOCAL);
+        f.upValues[fs.nups].idx = (char)v.info;
+        f.upValues[fs.nups].name = name;
+        return fs.nups++;
+    }
+
+    private static int searchVar(FuncState fs, String n) {
+        int i;
+        for (i = fs.nactvar - 1; i >= 0; i--) {
+            if (n.equals(getLocVar(fs, i).varName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static void markUpVal(FuncState fs, int level) {
+        BlockCnt bl = fs.bl;
+        while(bl.nactVar > level) {
+            bl = bl.previous;
+        }
+        bl.upVal = 1;
+    }
+
+    private static void singleVarAux(FuncState fs, String n, ExpDesc var, int base) {
+        if (fs == null) {
+            initExp(var, ExpressionKind.VVOID, 0);
+        } else {
+            int v = searchVar(fs, n);
+            if (v >= 0) {
+                initExp(var, ExpressionKind.VLOCAL, v);
+                if (base == 0) {
+                    markUpVal(fs, v);
+                }
+            } else {
+                int idx = searchChupValue(fs, n);
+                if (idx < 0) {
+                    singleVarAux(fs.prev, n, var, 0);
+                    if (var.k == ExpressionKind.VVOID) {
+                        return;
+                    }
+                    idx = newUpValue(fs, n, var);
+                }
+                initExp(var, ExpressionKind.VUPVAL, idx);
+            }
+        }
+    }
+
+    private static void singleVar(LexState ls, ExpDesc var) throws Exception {
+        String varName = strCheckName(ls);
+        FuncState fs = ls.fs;
+        singleVarAux(fs, varName, var, 1);
+        if (var.k == ExpressionKind.VVOID) {
+            ExpDesc key = new ExpDesc();
+            singleVarAux(fs, ls.envn, var, 1);
+            assert (var.k != ExpressionKind.VVOID);
+            codeString(ls, key, varName);
+
+        }
     }
 
 }

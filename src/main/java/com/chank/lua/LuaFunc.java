@@ -21,6 +21,8 @@ package com.chank.lua;
  */
 public final class LuaFunc {
 
+    public static final int MAX_UP_VAL = 255;
+
     public static final class UpVal {
         LuaTValue v;
         int refCount;

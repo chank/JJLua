@@ -79,7 +79,7 @@ public class LuaObject {
 
     public static final class UpValDesc {
         public String name;
-        public char inStack;
+        public boolean inStack;
         public char idx;
     }
 
