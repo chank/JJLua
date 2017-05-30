@@ -55,4 +55,54 @@ public final class Lua {
 
     public static final int LUA_MINSTACK = 20;
 
+    public static final int LUA_RIDX_MAINTHREAD = 1;
+    public static final int LUA_RIDX_GLOBALS = 2;
+    public static final int LUA_RIDX_LAST = LUA_RIDX_GLOBALS;
+
+    public static final int LUA_OPADD = 0;
+    public static final int LUA_OPSUB = 1;
+    public static final int LUA_OPMUL = 2;
+    public static final int LUA_OPMOD = 3;
+    public static final int LUA_OPPOW = 4;
+    public static final int LUA_OPDIV = 5;
+    public static final int LUA_OPIDIV = 6;
+    public static final int LUA_OPBAND = 7;
+    public static final int LUA_OPBOR = 8;
+    public static final int LUA_BXOR = 9;
+    public static final int LUA_OPSHL = 10;
+    public static final int LUA_OPSHR = 11;
+    public static final int LUA_OPUNM = 12;
+    public static final int LUA_OPBNOT = 13;
+
+    public static final int LUA_OPEQ = 0;
+    public static final int LUA_OPLT = 1;
+    public static final int LUA_OPLE = 2;
+
+    public static final int LUA_HOOKCALL = 0;
+    public static final int LUA_HOOKRET = 1;
+    public static final int LUA_HOOKLINE = 2;
+    public static final int LUA_HOOKCOUNT = 3;
+    public static final int LUA_HOKTAILCALL = 4;
+
+    public static final int LUA_MASKCALL = 1 << LUA_HOOKCALL;
+    public static final int LUA_MASKRET = 1 << LUA_HOOKRET;
+    public static final int LUA_MASKLINE = 1 << LUA_HOOKLINE;
+    public static final int LUA_MASKCOUNT = 1 << LUA_HOOKCOUNT;
+
+    public static final class LuaDebug {
+        public int event;
+        public String name;
+        public String nameWhat;
+        public String what;
+        public String source;
+        public int currentLine;
+        public int lineDefined;
+        public int lastLineDefined;
+        public char nups;
+        public char nParams;
+        public char isVarArg;
+        public char isTailCall;
+        public char[] shortSrc;
+    }
+
 }
