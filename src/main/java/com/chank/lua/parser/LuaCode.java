@@ -25,7 +25,34 @@ import com.chank.lua.LuaTValue;
  */
 public final class LuaCode {
 
+    public static final int MAX_REGS = 255;
+
     public static final int NO_JUMP = -1;
+
+    public static boolean hasJumps(LuaParser.ExpDesc e) {
+        return e.t != e.f;
+    }
+
+    private static int toNumeral(final LuaParser.ExpDesc e, LuaTValue v) {
+        if (hasJumps(e)) {
+            return  0;
+        }
+        if (e.k == ExpressionKind.VKINT) {
+            return 1;
+        } else if (e.k == ExpressionKind.VKFLT) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    public static void luaKNil(LuaParser.FuncState fs, int from, int n) {
+        long previous;
+        int l = from + n - 1;
+        if (fs.pc > fs.lastTarget) {
+            previous = fs.f.code[fs.pc - 1];
+        }
+    }
 
     public static int luaKStringK(LuaParser.FuncState fs, String s) {
         LuaTValue o = null;

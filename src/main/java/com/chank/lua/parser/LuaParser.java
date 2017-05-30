@@ -95,6 +95,10 @@ public final class LuaParser {
         public LabelList label;
     }
 
+    public static boolean hasMultret(ExpressionKind k) {
+        return k == ExpressionKind.VCALL || k == ExpressionKind.VVARARG;
+    }
+
     public static void semError(LexState ls, final String msg) {
         ls.t.token = 0;
         LuaLexer.luaXSyntaxError(ls, msg);
@@ -294,7 +298,17 @@ public final class LuaParser {
             singleVarAux(fs, ls.envn, var, 1);
             assert (var.k != ExpressionKind.VVOID);
             codeString(ls, key, varName);
+        }
+    }
 
+    private static void adjustAssign(LexState ls, int nVars, int nExps, ExpDesc e) {
+        FuncState fs = ls.fs;
+        int extra = nVars - nExps;
+        if (hasMultret(e.k)) {
+            extra++;
+            if (extra < 0) {
+                extra = 0;
+            }
         }
     }
 
