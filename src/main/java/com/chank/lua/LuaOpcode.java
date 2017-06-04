@@ -171,6 +171,8 @@ public final class LuaOpcode {
     public static final int MAX_ARG_BX = (1 << SIZE_BX) - 1;
     public static final int MAX_ARG_SBX = (MAX_ARG_BX) >> 1;
 
+    public static final int MAX_ARG_AX = ((1 << SIZE_AX) - 1);
+
     public static final int MAXARG_A = (1 << SIZE_A) - 1;
     public static final int MAXARG_B = (1 << SIZE_B) - 1;
     public static final int MAXARG_C = (1 << SIZE_C) - 1;
@@ -267,8 +269,8 @@ public final class LuaOpcode {
 
     public static final int BITRK = 1 << (SIZE_B - 1);
 
-    public static int isk(int x) {
-        return x & BITRK;
+    public static boolean isk(int x) {
+        return (x & BITRK) != 0;
     }
 
     public static int indexK(int r) {
@@ -349,8 +351,8 @@ public final class LuaOpcode {
         return LUAP_OP_MODES[m] & (1 << 6);
     }
 
-    public static int testTMode(int m) {
-        return LUAP_OP_MODES[m] & (1 << 7);
+    public static boolean testTMode(int m) {
+        return (LUAP_OP_MODES[m] & (1 << 7)) != 0;
     }
 
 }
