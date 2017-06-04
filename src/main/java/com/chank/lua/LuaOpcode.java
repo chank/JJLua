@@ -86,6 +86,57 @@ public final class LuaOpcode {
         OP_EXTRAARG;
     }
 
+    public static final String LUAP_OPNAMES[] = {
+            "MOVE",
+            "LOADX",
+            "LOADKX",
+            "LOADBOOL",
+            "LOADNIL",
+            "GETUPVAL",
+            "GETTABUP",
+            "GETTABLE",
+            "SETTABUP",
+            "SETUPVAL",
+            "SETTABLE",
+            "NEWTABLE",
+            "SELF",
+            "ADD",
+            "SUB",
+            "MUL",
+            "MOD",
+            "POW",
+            "DIV",
+            "IDIV",
+            "BAND",
+            "BOR",
+            "BXOR",
+            "SHL",
+            "SHR",
+            "UNM",
+            "BNOT",
+            "NOT",
+            "LEN",
+            "CONCAT",
+            "JMP",
+            "EQ",
+            "LT",
+            "LE",
+            "TEST",
+            "TESTSET",
+            "CALL",
+            "TAILCALL",
+            "RETURN",
+            "FORLOOP",
+            "FORPREF",
+            "TFORCALL",
+            "TFORLOOP",
+            "SETLIST",
+            "CLOSURE",
+            "VARARG",
+            "EXTRAARG",
+            null
+    };
+
     public static final int NUM_OPCODES = Opcode.values().length;
 
     public enum OpArgMask {
@@ -125,6 +176,10 @@ public final class LuaOpcode {
     public static final int MAXARG_C = (1 << SIZE_C) - 1;
 
     public static final int LFIELDS_PER_FLUSH = 50;
+
+    public static int opMode(int t, int a, int b, int c, int m) {
+        return (t << 7) | (a << 6) | (b << 4) | (c << 2) | m;
+    }
 
     public static int mask1(int n, int p) {
         return ((~((~0)<<n))<<p);
@@ -228,7 +283,55 @@ public final class LuaOpcode {
 
     public static final int NO_REG = MAXARG_A;
 
-    public static final byte[] LUAP_OP_MODES = new byte[NUM_OPCODES];
+    public static final byte[] LUAP_OP_MODES = {
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABx.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgN.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABx.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgR.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iAsBx.ordinal()),
+            (byte)opMode(1, 0, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(1, 0, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(1, 0, OpArgMask.OpArgK.ordinal(), OpArgMask.OpArgK.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(1, 0, OpArgMask.OpArgN.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(1, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iAsBx.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iAsBx.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgN.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgR.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iAsBx.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABx.ordinal()),
+            (byte)opMode(0, 1, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgN.ordinal(), OpMode.iABC.ordinal()),
+            (byte)opMode(0, 0, OpArgMask.OpArgU.ordinal(), OpArgMask.OpArgU.ordinal(), OpMode.iAx.ordinal()),
+    };
 
     public static OpMode getOpMode(int m) {
         return OpMode.values()[LUAP_OP_MODES[3] & 3];
