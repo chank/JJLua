@@ -20,6 +20,48 @@ package com.chank.lua;
  * @author Chank
  */
 public final class LuaState {
+    public static final int EXTRA_STACK = 5;
+    public static final int BASIC_STAK_SIZE = 2 * Lua.LUA_MINSTACK;
+
+    public static final class StringTable {
+        public String[] hash;
+        public int nuse;
+        public int size;
+    }
+
+    public static final class CallInfo {
+        public LuaTValue func;
+        public LuaTValue top;
+        public CallInfo previous;
+        public CallInfo next;
+        public static final class L {
+            public LuaTValue base;
+            int saveDpc;
+        }
+        public L l;
+        public static final class C {
+            int oldErrFunc;
+            int ctx;
+        }
+        public C c;
+        int extra;
+        short nResults;
+        short callStatus;
+    }
+
+    public static final int CIST_OAH = 1 << 0;
+    public static final int CIST_LUA = 1 << 1;
+    public static final int CIST_HOOKED = 1 << 2;
+    public static final int CIST_FRESH = 1 << 3;
+
+    public static final int CIST_YPCALL = 1 << 4;
+    public static final int CIST_TALL = 1 << 5;
+    public static final int CIST_HOOKYIELD = 1 << 6;
+    public static final int CIST_LEQ = 1 << 7;
+    public static final int CIST_FIN = 1 << 8;
+
+
+
     int nci;
     byte status;
 }
