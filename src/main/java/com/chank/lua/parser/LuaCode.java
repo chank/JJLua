@@ -65,4 +65,13 @@ public final class LuaCode {
         return 0;
     }
 
+    public static void luaKSetReturns(LuaParser.FuncState fs, LuaParser.ExpDesc e, int nresults) {
+        if (e.k == ExpressionKind.VCALL) {
+        }
+    }
+
+    public static int getInstruction(LuaParser.FuncState fs, LuaParser.ExpDesc e) {
+        return fs.f.code[e.info];
+    }
+
 }

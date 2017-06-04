@@ -53,7 +53,7 @@ public class LuaObject {
         public int lineDefined;
         public int lastLineDefined;
         public LuaTValue k;
-        public long[] code;
+        public int[] code;
         public Proto[] p;
         public int[] lineInfo;
         public LocVar[] locVars;

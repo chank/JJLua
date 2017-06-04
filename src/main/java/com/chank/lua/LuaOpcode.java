@@ -104,9 +104,9 @@ public final class LuaOpcode {
 
     public static final int SIZE_C = 9;
     public static final int SIZE_B = 9;
-    public static final int SIZE_Bx = SIZE_C + SIZE_B;
+    public static final int SIZE_BX = SIZE_C + SIZE_B;
     public static final int SIZE_A = 8;
-    public static final int SIZE_Ax = SIZE_C + SIZE_B + SIZE_A;
+    public static final int SIZE_AX = SIZE_C + SIZE_B + SIZE_A;
 
     public static final int SIZE_OP = 6;
 
@@ -114,13 +114,140 @@ public final class LuaOpcode {
     public static final int POS_A = POS_OP +SIZE_OP;
     public static final int POS_C = POS_A + SIZE_A;
     public static final int POS_B = POS_C + SIZE_C;
-    public static final int POS_Bx = POS_C;
-    public static final int POS_ax = POS_A;
+    public static final int POS_BX = POS_C;
+    public static final int POS_AX = POS_A;
+
+    public static final int MAX_ARG_BX = (1 << SIZE_BX) - 1;
+    public static final int MAX_ARG_SBX = (MAX_ARG_BX) >> 1;
 
     public static final int MAXARG_A = (1 << SIZE_A) - 1;
     public static final int MAXARG_B = (1 << SIZE_B) - 1;
     public static final int MAXARG_C = (1 << SIZE_C) - 1;
 
     public static final int LFIELDS_PER_FLUSH = 50;
+
+    public static int mask1(int n, int p) {
+        return ((~((~0)<<n))<<p);
+    }
+
+    public static int mask0(int n, int p) {
+        return ~mask1(n, p);
+    }
+
+    public static Opcode getOpCode(int i) {
+        return Opcode.values()[(i >> POS_OP) & mask1(SIZE_OP, 0)];
+    }
+
+    public static int setOpcode(int i, int o) {
+        return ((i) & mask0(SIZE_OP, POS_OP)) | (o << POS_OP) & mask1(SIZE_OP, POS_OP);
+    }
+
+    public static int getArg(int i, int pos, int size) {
+        return (i >> pos) & mask1(size, 0);
+    }
+
+    public static int setArg(int i, int v, int pos, int size) {
+        return (i & mask0(size, pos)) | ((v << pos) & mask1(size, pos));
+    }
+
+    public static int getArgA(int i) {
+        return getArg(i, POS_A, SIZE_A);
+    }
+
+    public static int setArgA(int i, int v) {
+        return setArg(i, v, POS_A, SIZE_A);
+    }
+
+    public static int getArgB(int i) {
+        return getArg(i, POS_B, SIZE_B);
+    }
+
+    public static int setArgB(int i, int v) {
+        return setArg(i, v, POS_B, SIZE_B);
+    }
+
+    public static int getArgC(int i) {
+        return getArg(i, POS_C, SIZE_C);
+    }
+
+    public static int setArgC(int i, int v) {
+        return setArg(i, v, POS_C, SIZE_C);
+    }
+
+    public static int getArgBX(int i) {
+        return getArg(i, POS_BX, SIZE_BX);
+    }
+
+    public static int setArgBX(int i, int v) {
+        return setArg(i, v, POS_BX, SIZE_BX);
+    }
+
+    public static int getArgAX(int i) {
+        return getArg(i, POS_AX, SIZE_AX);
+    }
+
+    public static int setArgAX(int i, int v) {
+        return setArg(i, v, POS_AX, SIZE_AX);
+    }
+
+    public static int getArgSBX(int i) {
+        return getArgBX(i) - MAX_ARG_SBX;
+    }
+
+    public static int setArgSBX(int i, int b) {
+        return setArgBX(i, b + MAX_ARG_SBX);
+    }
+
+    public static int createABC(int o, int a, int b, int c) {
+        return (o << POS_OP) | (a << POS_A) | (b << POS_B) | (c << POS_C);
+    }
+
+    public static int createABX(int o, int a, int bc) {
+        return (o << POS_OP) | (a << POS_A) | (bc << POS_BX);
+    }
+
+    public static int createAX(int o, int a) {
+        return (o << POS_OP) | (a << POS_AX);
+    }
+
+    public static final int BITRK = 1 << (SIZE_B - 1);
+
+    public static int isk(int x) {
+        return x & BITRK;
+    }
+
+    public static int indexK(int r) {
+        return r & ~BITRK;
+    }
+
+    public static final int MAX_INDEXRK = BITRK - 1;
+
+    public static int rkask(int x) {
+        return x | BITRK;
+    }
+
+    public static final int NO_REG = MAXARG_A;
+
+    public static final byte[] LUAP_OP_MODES = new byte[NUM_OPCODES];
+
+    public static OpMode getOpMode(int m) {
+        return OpMode.values()[LUAP_OP_MODES[3] & 3];
+    }
+
+    public static OpArgMask getBMode(int m) {
+        return OpArgMask.values()[(LUAP_OP_MODES[m] >> 4) & 3];
+    }
+
+    public static OpArgMask getCMode(int m) {
+        return OpArgMask.values()[(LUAP_OP_MODES[m] >> 2) & 3];
+    }
+
+    public static int testAMode(int m) {
+        return LUAP_OP_MODES[m] & (1 << 6);
+    }
+
+    public static int testTMode(int m) {
+        return LUAP_OP_MODES[m] & (1 << 7);
+    }
 
 }
