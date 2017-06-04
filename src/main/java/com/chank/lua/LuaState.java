@@ -60,8 +60,6 @@ public final class LuaState {
     public static final int CIST_LEQ = 1 << 7;
     public static final int CIST_FIN = 1 << 8;
 
-
-
     int nci;
     byte status;
 }
