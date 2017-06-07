@@ -282,6 +282,16 @@ public final class LuaCode {
         return addK(fs, o, o);
     }
 
+    public static int luaKIntK(LuaParser.FuncState fs, int n) {
+        LuaTValue k = null;
+        LuaTValue o = null;
+        return addK(fs, k, o);
+    }
+
+    private static int luaKNumberK(LuaParser.FuncState fs, double r) {
+        LuaTValue o = null;
+        return addK(fs, o, o);
+    }
 
     public static void luaKSetReturns(LuaParser.FuncState fs, LuaParser.ExpDesc e, int nresults) {
         if (e.k == ExpressionKind.VCALL) {
