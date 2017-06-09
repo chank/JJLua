@@ -122,6 +122,10 @@ public class LuaObject {
         public LClosure l;
     }
 
+    public static Object val(LuaTValue o) {
+        return o.value;
+    }
+
 
     public static int rttype(LuaTValue o) {
         return o.tt;
@@ -217,6 +221,128 @@ public class LuaObject {
 
     public static boolean ttIsDeadKey(LuaTValue o) {
         return checkTag(o, LUA_TDEADKEY);
+    }
+
+    public static boolean iValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean fltValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean nValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean pValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean tsValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean uValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean clValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean clLValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean clCValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean fValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean hValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean bValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean thValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean deadValue(LuaTValue o) {
+        return false;
+    }
+
+    public static boolean lIsFalse(LuaTValue o) {
+        return ttIsNil(o) || (ttIsBoolean(o) && bValue(o));
+    }
+
+    public static boolean isCollectTable(LuaTValue o) {
+        return (rttype(o) & BIT_ISCOLLECTABLE) != 0;
+    }
+
+    public static void setTT(LuaTValue o, int t) {
+        o.tt = t;
+    }
+
+    public static void setFltValue(LuaTValue obj) {
+        LuaTValue io = obj;
+        setTT(io, LUA_TNUMFLT);
+    }
+
+    public static void chgFltValue(LuaTValue obj) {
+        LuaTValue io = obj;
+    }
+
+    public static void setIValue(LuaTValue obj) {
+        setTT(obj, LUA_TNUMINT);
+    }
+
+    public static void chgIValue(LuaTValue obj) {
+    }
+
+    public static void setNilValue(LuaTValue obj) {
+        setTT(obj, Lua.LUA_TNIL);
+    }
+
+    public static void setFValue(LuaTValue obj) {
+        setTT(obj, LUA_TLCF);
+    }
+
+    public static void setPValue(LuaTValue obj) {
+        setTT(obj, Lua.LUA_TLIGHTUSERDATA);
+    }
+
+    public static void setBValue(Object l, LuaTValue obj) {
+        setTT(obj, Lua.LUA_TBOOLEAN);
+    }
+
+    public static void setUValue(Object l, LuaTValue obj) {
+    }
+
+    public static void setThValue(Object l, LuaTValue obj) {
+    }
+
+    public static void setClLValue(Object l, LuaTValue obj) {
+    }
+
+    public static void setClCValue(Object l, LuaTValue obj) {
+    }
+
+    public static void setHValue(Object l, LuaTValue obj) {
+    }
+
+    public static void setDeadValue(LuaTValue obj) {
+        setTT(obj, LUA_TDEADKEY);
+    }
+
+    public static void setObj(Object l, LuaTValue obj1, LuaTValue obj2) {
     }
 
 }
