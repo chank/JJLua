@@ -68,7 +68,7 @@ public final class Lua {
     public static final int LUA_OPIDIV = 6;
     public static final int LUA_OPBAND = 7;
     public static final int LUA_OPBOR = 8;
-    public static final int LUA_BXOR = 9;
+    public static final int LUA_OPBXOR = 9;
     public static final int LUA_OPSHL = 10;
     public static final int LUA_OPSHR = 11;
     public static final int LUA_OPUNM = 12;

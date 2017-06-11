@@ -38,16 +38,17 @@ public final class LuaParser {
 
     static final class ExpDesc {
         public ExpressionKind k;
-        public long ival;
+        public int ival;
         public double nval;
         public int info;
         static final class Ind {
-            public short idx;
-            char t;
-            char vt;
+            public int idx;
+            int t;
+            int vt;
         }
-        int t;
-        int f;
+        public Ind ind;
+        public int t;
+        public int f;
     }
 
     static final class VarDesc {

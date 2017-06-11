@@ -35,5 +35,5 @@ public class FuncState {
     public short nLocVars;
     public char nactvar;
     public char nups;
-    public char freeReg;
+    public int freeReg;
 }
