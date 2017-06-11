@@ -36,21 +36,6 @@ public final class LuaParser {
         public boolean isLoop;
     }
 
-    static final class ExpDesc {
-        public ExpressionKind k;
-        public int ival;
-        public double nval;
-        public int info;
-        static final class Ind {
-            public int idx;
-            int t;
-            int vt;
-        }
-        public Ind ind;
-        public int t;
-        public int f;
-    }
-
     static final class VarDesc {
         public short idx;
     }

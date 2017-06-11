@@ -17,10 +17,6 @@
 package com.chank.lua.parser;
 
 import com.chank.lua.*;
-import com.sun.org.apache.xpath.internal.compiler.OpCodes;
-import jdk.nashorn.internal.runtime.regexp.joni.constants.OPCode;
-
-import java.rmi.server.ExportException;
 
 import static com.chank.lua.LuaOpcode.*;
 
@@ -66,11 +62,11 @@ public final class LuaCode {
 
     public static final int NO_JUMP = -1;
 
-    public static boolean hasJumps(LuaParser.ExpDesc e) {
+    public static boolean hasJumps(ExpDesc e) {
         return e.t != e.f;
     }
 
-    private static int toNumeral(final LuaParser.ExpDesc e, LuaTValue v) {
+    private static int toNumeral(final ExpDesc e, LuaTValue v) {
         if (hasJumps(e)) {
             return  0;
         }
@@ -289,13 +285,13 @@ public final class LuaCode {
         }
     }
 
-    private static void freeExp(FuncState fs, LuaParser.ExpDesc e) {
+    private static void freeExp(FuncState fs, ExpDesc e) {
         if (e.k == ExpressionKind.VNONRELOC) {
             freeReg(fs, e.info);
         }
     }
 
-    private static void freeExps(FuncState fs, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2) {
+    private static void freeExps(FuncState fs, ExpDesc e1, ExpDesc e2) {
         int r1 = e1.k == ExpressionKind.VNONRELOC ? e1.info : -1;
         int r2 = e2.k == ExpressionKind.VNONRELOC ? e2.info : -1;
         if (r1 > r2) {
@@ -342,7 +338,7 @@ public final class LuaCode {
         return addK(fs, k, v);
     }
 
-    public static void luaKSetReturns(FuncState fs, LuaParser.ExpDesc e, int nresults) {
+    public static void luaKSetReturns(FuncState fs, ExpDesc e, int nresults) {
         if (e.k == ExpressionKind.VCALL) {
             LuaOpcode.setArgC(getInstruction(fs, e), nresults + 1);
         } else if (e.k == ExpressionKind.VVARARG) {
@@ -354,7 +350,7 @@ public final class LuaCode {
         }
     }
 
-    public static void luaKSetOneRet(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKSetOneRet(FuncState fs, ExpDesc e) {
         if (e.k == ExpressionKind.VCALL) {
             e.k = ExpressionKind.VNONRELOC;
             e.info = LuaOpcode.getArgA(getInstruction(fs, e));
@@ -364,7 +360,7 @@ public final class LuaCode {
         }
     }
 
-    public static void luaKDischargeVars(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKDischargeVars(FuncState fs, ExpDesc e) {
         switch (e.k) {
             case VLOCAL: {
                 e.k = ExpressionKind.VNONRELOC;
@@ -399,7 +395,7 @@ public final class LuaCode {
         }
     }
 
-    private static void dischare2Reg(FuncState fs, LuaParser.ExpDesc e, int reg) {
+    private static void dischare2Reg(FuncState fs, ExpDesc e, int reg) {
         luaKDischargeVars(fs, e);
         switch (e.k) {
             case VNIL: {
@@ -443,7 +439,7 @@ public final class LuaCode {
         e.k = ExpressionKind.VNONRELOC;
     }
 
-    private static void discharge2AnyReg(FuncState fs, LuaParser.ExpDesc e) {
+    private static void discharge2AnyReg(FuncState fs, ExpDesc e) {
         if (e.k != ExpressionKind.VNONRELOC) {
             luaKReserveRegs(fs, 1);
             dischare2Reg(fs, e, fs.freeReg - 1);
@@ -465,7 +461,7 @@ public final class LuaCode {
         return false;
     }
 
-    private static void exp2Reg(FuncState fs, LuaParser.ExpDesc e, int reg) {
+    private static void exp2Reg(FuncState fs, ExpDesc e, int reg) {
         dischare2Reg(fs, e, reg);
         if (e.k == ExpressionKind.VJMP) {
             luaKConcat(fs, e.t, e.info);
@@ -489,14 +485,14 @@ public final class LuaCode {
         e.k = ExpressionKind.VNONRELOC;
     }
 
-    public static void luaKExp2NextReg(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKExp2NextReg(FuncState fs, ExpDesc e) {
         luaKDischargeVars(fs, e);
         freeExp(fs, e);
         luaKReserveRegs(fs, 1);
         exp2Reg(fs, e, fs.freeReg - 1);
     }
 
-    public static int luaKExp2AnyReg(FuncState fs, LuaParser.ExpDesc e) {
+    public static int luaKExp2AnyReg(FuncState fs, ExpDesc e) {
         luaKDischargeVars(fs, e);
         if (e.k == ExpressionKind.VNONRELOC) {
             if (!hasJumps(e)) {
@@ -511,13 +507,13 @@ public final class LuaCode {
         return e.info;
     }
 
-    public static void luaKExp2AnyRegUp(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKExp2AnyRegUp(FuncState fs, ExpDesc e) {
         if (e.k != ExpressionKind.VUPVAL || hasJumps(e)) {
             luaKExp2AnyReg(fs, e);
         }
     }
 
-    public static void luaKExp2Val(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKExp2Val(FuncState fs, ExpDesc e) {
         if (hasJumps(e)) {
             luaKExp2AnyReg(fs, e);
         } else {
@@ -525,7 +521,7 @@ public final class LuaCode {
         }
     }
 
-    public static int luaKExp2RK(FuncState fs, LuaParser.ExpDesc e) {
+    public static int luaKExp2RK(FuncState fs, ExpDesc e) {
         luaKExp2Val(fs, e);
         switch (e.k) {
             case VTRUE: {
@@ -561,7 +557,7 @@ public final class LuaCode {
         return luaKExp2AnyReg(fs, e);
     }
 
-    public static void luaKStoreVar(FuncState fs, LuaParser.ExpDesc var, LuaParser.ExpDesc ex) {
+    public static void luaKStoreVar(FuncState fs, ExpDesc var, ExpDesc ex) {
         switch (var.k) {
             case VLOCAL: {
                 freeExp(fs, ex);
@@ -586,7 +582,7 @@ public final class LuaCode {
         }
     }
 
-    public static void lulaKSelf(FuncState fs, LuaParser.ExpDesc e, LuaParser.ExpDesc key) {
+    public static void lulaKSelf(FuncState fs, ExpDesc e, ExpDesc key) {
         int eReg;
         luaKExp2AnyReg(fs, e);
         eReg = e.info;
@@ -598,12 +594,12 @@ public final class LuaCode {
         freeExp(fs, key);
     }
 
-    private static void negateCondition(FuncState fs, LuaParser.ExpDesc e) {
+    private static void negateCondition(FuncState fs, ExpDesc e) {
         int pc = getJumpControl(fs, e.info);
         setArgA(pc, getArgA(pc));
     }
 
-    private static int jumpOnCond(FuncState fs, LuaParser.ExpDesc e, boolean cond) {
+    private static int jumpOnCond(FuncState fs, ExpDesc e, boolean cond) {
         if (e.k == ExpressionKind.VRELOCABLE) {
             int ie = getInstruction(fs, e);
             if (getOpCode(ie) == Opcode.OP_NOT) {
@@ -616,7 +612,7 @@ public final class LuaCode {
         return condJump(fs, Opcode.OP_TESTSET, NO_REG, e.info, cond);
     }
 
-    public static void luaKGoIfTrue(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKGoIfTrue(FuncState fs, ExpDesc e) {
         int pc;
         luaKDischargeVars(fs, e);
         switch (e.k) {
@@ -642,7 +638,7 @@ public final class LuaCode {
         e.t = NO_JUMP;
     }
 
-    public static void luaKGoIfFalse(FuncState fs, LuaParser.ExpDesc e) {
+    public static void luaKGoIfFalse(FuncState fs, ExpDesc e) {
         int pc;
         luaKDischargeVars(fs, e);
         switch (e.k) {
@@ -665,7 +661,7 @@ public final class LuaCode {
         e.f = NO_JUMP;
     }
 
-    private static void codeNot(FuncState fs, LuaParser.ExpDesc e) {
+    private static void codeNot(FuncState fs, ExpDesc e) {
         luaKDischargeVars(fs, e);
         switch (e.k) {
             case VNIL:
@@ -704,7 +700,7 @@ public final class LuaCode {
         removeValues(fs, e.t);
     }
 
-    public static void luaKIndexed(FuncState fs, LuaParser.ExpDesc t, LuaParser.ExpDesc k) {
+    public static void luaKIndexed(FuncState fs, ExpDesc t, ExpDesc k) {
         t.ind.t = t.info;
         t.ind.idx = luaKExp2RK(fs, k);
         t.ind.vt = (t.k == ExpressionKind.VUPVAL) ? ExpressionKind.VUPVAL.getValue() : ExpressionKind.VLOCAL.getValue();
@@ -732,7 +728,7 @@ public final class LuaCode {
         }
     }
 
-    private static boolean constFolding(FuncState fs, int op, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2) {
+    private static boolean constFolding(FuncState fs, int op, ExpDesc e1, ExpDesc e2) {
         LuaTValue v1 = null;
         LuaTValue v2 = null;
         LuaTValue res = null;
@@ -749,14 +745,14 @@ public final class LuaCode {
         return true;
     }
 
-    private static void codeUnexpVal(FuncState fs, Opcode op, LuaParser.ExpDesc e, int line) {
+    private static void codeUnexpVal(FuncState fs, Opcode op, ExpDesc e, int line) {
         int r = luaKExp2RK(fs, e);
         freeExp(fs, e);
         e.info = luaKCodeABC(fs, op, 0, r, 0);
         e.k = ExpressionKind.VRELOCABLE;
     }
 
-    private static void codeBinExpVal(FuncState fs, Opcode op, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2, int line) {
+    private static void codeBinExpVal(FuncState fs, Opcode op, ExpDesc e1, ExpDesc e2, int line) {
         int rk2 = luaKExp2RK(fs, e2);
         int rk1 = luaKExp2RK(fs , e1);
         freeExps(fs, e1, e2);
@@ -764,7 +760,7 @@ public final class LuaCode {
         e1.k = ExpressionKind.VRELOCABLE;
     }
 
-    private static void codeComp(FuncState fs, BinOpr opr, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2) {
+    private static void codeComp(FuncState fs, BinOpr opr, ExpDesc e1, ExpDesc e2) {
         int rk1 = e1.k == ExpressionKind.VK ? rkask(e1.info) : e1.info;
         int rk2 = luaKExp2RK(fs, e2);
         freeExps(fs, e1, e2);
@@ -788,8 +784,8 @@ public final class LuaCode {
         e1.k = ExpressionKind.VJMP;
     }
 
-    public static void luaKPrefix(FuncState fs, UnOPR op, LuaParser.ExpDesc e, int line) {
-        LuaParser.ExpDesc ef = null;
+    public static void luaKPrefix(FuncState fs, UnOPR op, ExpDesc e, int line) {
+        ExpDesc ef = null;
         switch (op) {
             case OPR_MINUS:
             case OPR_BNOT: {
@@ -810,7 +806,7 @@ public final class LuaCode {
         }
     }
 
-    public void luaKInfix(FuncState fs, BinOpr op, LuaParser.ExpDesc v) {
+    public void luaKInfix(FuncState fs, BinOpr op, ExpDesc v) {
         switch (op) {
             case OPR_AND: {
                 luaKGoIfTrue(fs, v);
@@ -848,7 +844,7 @@ public final class LuaCode {
         }
     }
 
-    public void luaKPosFix(FuncState fs, BinOpr op, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2, int line) {
+    public void luaKPosFix(FuncState fs, BinOpr op, ExpDesc e1, ExpDesc e2, int line) {
         switch (op) {
             case OPR_ADD: {
                 assert e1.t == NO_JUMP;
@@ -928,7 +924,7 @@ public final class LuaCode {
         fs.freeReg = base + 1;
     }
 
-    public static int getInstruction(FuncState fs, LuaParser.ExpDesc e) {
+    public static int getInstruction(FuncState fs, ExpDesc e) {
         return fs.f.code[e.info];
     }
 
