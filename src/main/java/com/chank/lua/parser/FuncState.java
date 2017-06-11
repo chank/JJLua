@@ -17,31 +17,23 @@
 package com.chank.lua.parser;
 
 import com.chank.lua.LuaObject;
-import com.chank.lua.LuaState;
-import com.chank.lua.util.ZIO;
 
 /**
  * @author Chank
  */
-public final class LexState {
-
-    int current;
-    int lineNumber;
-    int lastLine;
-    LuaLexer.Token t;
-    LuaLexer.Token lookahead;
-    FuncState fs;
-    LuaState l;
-    ZIO z;
-    ZIO.MBuffer buff;
-    LuaObject.Table h;
-    LuaParser.DynData dyd;
-    String source;
-    String envn;
-
-    final int incLineNumber() {
-        lineNumber += 1;
-        return lineNumber;
-    }
-
+public class FuncState {
+    public LuaObject.Proto f;
+    public FuncState prev;
+    public LexState ls;
+    public LuaParser.BlockCnt bl;
+    public int pc;
+    public int lastTarget;
+    public int jpc;
+    public int nk;
+    public int np;
+    public int firstLocal;
+    public short nLocVars;
+    public char nactvar;
+    public char nups;
+    public char freeReg;
 }

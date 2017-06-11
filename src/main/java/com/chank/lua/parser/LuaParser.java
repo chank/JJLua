@@ -25,23 +25,6 @@ import com.chank.lua.LuaState;
  */
 public final class LuaParser {
 
-    static final class FuncState {
-        public LuaObject.Proto f;
-        public FuncState prev;
-        public LexState ls;
-        public BlockCnt bl;
-        public int pc;
-        public int lastTarget;
-        public int jpc;
-        public int nk;
-        public int np;
-        public int firstLocal;
-        public short nLocVars;
-        public char nactvar;
-        public char nups;
-        public char freeReg;
-    }
-
     public static final int MAX_VARS = 200;
 
     static final class BlockCnt {

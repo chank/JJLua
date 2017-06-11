@@ -47,7 +47,7 @@ public final class LuaCode {
         }
     }
 
-    public static void luaKNil(LuaParser.FuncState fs, int from, int n) {
+    public static void luaKNil(FuncState fs, int from, int n) {
         int previous;
         int l = from + n - 1;
         if (fs.pc > fs.lastTarget) {
@@ -70,7 +70,7 @@ public final class LuaCode {
         }
     }
 
-    private static int getJump(LuaParser.FuncState fs, int pc) {
+    private static int getJump(FuncState fs, int pc) {
         int offset = LuaOpcode.getArgSBX(fs.f.code[pc]);
         if (offset == NO_JUMP) {
             return NO_JUMP;
@@ -79,7 +79,7 @@ public final class LuaCode {
         }
     }
 
-    private static void fixJump(LuaParser.FuncState fs, int pc, int dest) {
+    private static void fixJump(FuncState fs, int pc, int dest) {
         int jmp = fs.f.code[pc];
         int offset = dest - (pc + 1);
         assert dest != NO_JUMP;
@@ -89,7 +89,7 @@ public final class LuaCode {
         LuaOpcode.setArgSBX(jmp, offset);
     }
 
-    public static void luaKConcat(LuaParser.FuncState fs, int l1, int l2) {
+    public static void luaKConcat(FuncState fs, int l1, int l2) {
         if (l2 == NO_JUMP) {
             return;
         } else if (l1 == NO_JUMP) {
@@ -104,7 +104,7 @@ public final class LuaCode {
         }
     }
 
-    public static int luaKJump(LuaParser.FuncState fs) {
+    public static int luaKJump(FuncState fs) {
         int jpc = fs.jpc;
         int j;
         fs.jpc = NO_JUMP;
@@ -113,19 +113,19 @@ public final class LuaCode {
         return j;
     }
 
-    public static void luaKRet(LuaParser.FuncState fs, int first, int nret) {
+    public static void luaKRet(FuncState fs, int first, int nret) {
     }
 
-    private static int condJump(LuaParser.FuncState fs, OPCode op, int a, int b, int c) {
+    private static int condJump(FuncState fs, OPCode op, int a, int b, int c) {
         return luaKJump(fs);
     }
 
-    public static int luaKGetLabel(LuaParser.FuncState fs) {
+    public static int luaKGetLabel(FuncState fs) {
         fs.lastTarget = fs.pc;
         return fs.pc;
     }
 
-    private static int getJumpControl(LuaParser.FuncState fs, int pc) {
+    private static int getJumpControl(FuncState fs, int pc) {
         int pi = fs.f.code[pc];
         if (pc >= 1 && LuaOpcode.testTMode(LuaOpcode.getOpCode(pi - 1).ordinal())) {
             return pi - 1;
@@ -134,7 +134,7 @@ public final class LuaCode {
         }
     }
 
-    private static boolean patchTestReg(LuaParser.FuncState fs, int node, int reg) {
+    private static boolean patchTestReg(FuncState fs, int node, int reg) {
         int i = getJumpControl(fs, node);
         if (LuaOpcode.getOpCode(i) != LuaOpcode.Opcode.OP_TESTSET) {
             return false;
@@ -147,13 +147,13 @@ public final class LuaCode {
         return true;
     }
 
-    private static void removeValues(LuaParser.FuncState fs, int list) {
+    private static void removeValues(FuncState fs, int list) {
         for (; list != NO_JUMP; list = getJump(fs, list)) {
             patchTestReg(fs, list, NO_REG);
         }
     }
 
-    private static void patchListAux(LuaParser.FuncState fs, int list, int vTarget, int reg, int dTarget) {
+    private static void patchListAux(FuncState fs, int list, int vTarget, int reg, int dTarget) {
         while (list != NO_JUMP) {
             int next = getJump(fs, list);
             if (patchTestReg(fs, list, reg)) {
@@ -165,17 +165,17 @@ public final class LuaCode {
         }
     }
 
-    private static void dischargeJPC(LuaParser.FuncState fs) {
+    private static void dischargeJPC(FuncState fs) {
         patchListAux(fs, fs.jpc, fs.pc, NO_REG, fs.pc);
         fs.jpc = NO_JUMP;
     }
 
-    public static void luaKPatchToHere(LuaParser.FuncState fs, int list) {
+    public static void luaKPatchToHere(FuncState fs, int list) {
         luaKGetLabel(fs);
         luaKConcat(fs, fs.jpc, list);
     }
 
-    public static void luaKPatchList(LuaParser.FuncState fs, int list, int target) {
+    public static void luaKPatchList(FuncState fs, int list, int target) {
         if (target == fs.pc) {
             luaKPatchToHere(fs, list);
         } else {
@@ -184,7 +184,7 @@ public final class LuaCode {
         }
     }
 
-    public static void luaKPatchClose(LuaParser.FuncState fs, int list, int level) {
+    public static void luaKPatchClose(FuncState fs, int list, int level) {
         level++;
         for (; list != NO_JUMP; list = getJump(fs, list)) {
             assert(LuaOpcode.getOpCode(fs.f.code[list]) == LuaOpcode.Opcode.OP_JMP &&
@@ -193,7 +193,7 @@ public final class LuaCode {
         }
     }
 
-    public static int luaKCode(LuaParser.FuncState fs, int i) {
+    public static int luaKCode(FuncState fs, int i) {
         LuaObject.Proto f = fs.f;
         dischargeJPC(fs);
         f.code[fs.pc] = i;
@@ -201,7 +201,7 @@ public final class LuaCode {
         return fs.pc++;
     }
 
-    public static int luaKCodeABC(LuaParser.FuncState fs, LuaOpcode.Opcode o, int a, int b, int c) {
+    public static int luaKCodeABC(FuncState fs, LuaOpcode.Opcode o, int a, int b, int c) {
         assert LuaOpcode.getOpMode(o.ordinal()) == LuaOpcode.OpMode.iABC;
         assert LuaOpcode.getBMode(o.ordinal()) != LuaOpcode.OpArgMask.OpArgN || b == 0;
         assert LuaOpcode.getCMode(o.ordinal()) != LuaOpcode.OpArgMask.OpArgN || c == 0;
@@ -209,19 +209,19 @@ public final class LuaCode {
         return luaKCode(fs, LuaOpcode.createABC(o.ordinal(), a, b, c));
     }
 
-    public static int luaKCodeABX(LuaParser.FuncState fs, int o, int a, int bc) {
+    public static int luaKCodeABX(FuncState fs, int o, int a, int bc) {
         assert LuaOpcode.getOpMode(o) == OpMode.iABx || LuaOpcode.getOpMode(o) == OpMode.iAsBx;
         assert LuaOpcode.getCMode(o) == OpArgMask.OpArgN;
         assert a <= MAXARG_A && bc < MAX_ARG_BX;
         return luaKCode(fs, LuaOpcode.createABX(o, a, bc));
     }
 
-    private static int codeExtraArg(LuaParser.FuncState fs, int a) {
+    private static int codeExtraArg(FuncState fs, int a) {
         assert a <= LuaOpcode.MAX_ARG_AX;
         return luaKCode(fs, LuaOpcode.createAX(Opcode.OP_EXTRAARG.ordinal(), a));
     }
 
-    public static int luaKCodeK(LuaParser.FuncState fs, int reg, int k) {
+    public static int luaKCodeK(FuncState fs, int reg, int k) {
         if (k <= LuaOpcode.MAX_ARG_BX) {
             return luaKCodeABX(fs, Opcode.OP_LOADK.ordinal(), reg, k);
         } else {
@@ -231,7 +231,7 @@ public final class LuaCode {
         }
     }
 
-    public static void luaKCheckStack(LuaParser.FuncState fs, int n) {
+    public static void luaKCheckStack(FuncState fs, int n) {
         int newStack = fs.freeReg + n;
         if (newStack > fs.f.maxStackSize) {
             if (newStack >= MAX_REGS) {
@@ -241,25 +241,25 @@ public final class LuaCode {
         }
     }
 
-    public static void luaKReserveRegs(LuaParser.FuncState fs, int n) {
+    public static void luaKReserveRegs(FuncState fs, int n) {
         luaKCheckStack(fs, n);
         fs.freeReg += n;
     }
 
-    public static void freeReg(LuaParser.FuncState fs, int reg) {
+    public static void freeReg(FuncState fs, int reg) {
         if (!isk(reg) && reg >= fs.nactvar) {
             fs.freeReg--;
             assert reg == fs.freeReg;
         }
     }
 
-    private static void freeExp(LuaParser.FuncState fs, LuaParser.ExpDesc e) {
+    private static void freeExp(FuncState fs, LuaParser.ExpDesc e) {
         if (e.k == ExpressionKind.VNONRELOC) {
             freeReg(fs, e.info);
         }
     }
 
-    private static void freeExps(LuaParser.FuncState fs, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2) {
+    private static void freeExps(FuncState fs, LuaParser.ExpDesc e1, LuaParser.ExpDesc e2) {
         int r1 = e1.k == ExpressionKind.VNONRELOC ? e1.info : -1;
         int r2 = e2.k == ExpressionKind.VNONRELOC ? e2.info : -1;
         if (r1 > r2) {
@@ -271,34 +271,34 @@ public final class LuaCode {
         }
     }
 
-    private static int addK(LuaParser.FuncState fs, LuaTValue key, LuaTValue v) {
+    private static int addK(FuncState fs, LuaTValue key, LuaTValue v) {
         LuaState l = fs.ls.l;
         LuaObject.Proto f = fs.f;
         return 0;
     }
 
-    public static int luaKStringK(LuaParser.FuncState fs, String s) {
+    public static int luaKStringK(FuncState fs, String s) {
         LuaTValue o = null;
         return addK(fs, o, o);
     }
 
-    public static int luaKIntK(LuaParser.FuncState fs, int n) {
+    public static int luaKIntK(FuncState fs, int n) {
         LuaTValue k = null;
         LuaTValue o = null;
         return addK(fs, k, o);
     }
 
-    private static int luaKNumberK(LuaParser.FuncState fs, double r) {
+    private static int luaKNumberK(FuncState fs, double r) {
         LuaTValue o = null;
         return addK(fs, o, o);
     }
 
-    private static int boolK(LuaParser.FuncState fs, int b) {
+    private static int boolK(FuncState fs, int b) {
         LuaTValue o = null;
         return addK(fs, o, o);
     }
 
-    public static void luaKSetReturns(LuaParser.FuncState fs, LuaParser.ExpDesc e, int nresults) {
+    public static void luaKSetReturns(FuncState fs, LuaParser.ExpDesc e, int nresults) {
         if (e.k == ExpressionKind.VCALL) {
             LuaOpcode.setArgC(getInstruction(fs, e), nresults + 1);
         } else if (e.k == ExpressionKind.VVARARG) {
@@ -310,7 +310,7 @@ public final class LuaCode {
         }
     }
 
-    public static int getInstruction(LuaParser.FuncState fs, LuaParser.ExpDesc e) {
+    public static int getInstruction(FuncState fs, LuaParser.ExpDesc e) {
         return fs.f.code[e.info];
     }
 
