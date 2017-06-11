@@ -293,6 +293,11 @@ public final class LuaCode {
         return addK(fs, o, o);
     }
 
+    private static int boolK(LuaParser.FuncState fs, int b) {
+        LuaTValue o = null;
+        return addK(fs, o, o);
+    }
+
     public static void luaKSetReturns(LuaParser.FuncState fs, LuaParser.ExpDesc e, int nresults) {
         if (e.k == ExpressionKind.VCALL) {
             LuaOpcode.setArgC(getInstruction(fs, e), nresults + 1);

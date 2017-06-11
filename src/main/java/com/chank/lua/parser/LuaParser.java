@@ -309,6 +309,13 @@ public final class LuaParser {
             if (extra < 0) {
                 extra = 0;
             }
+            LuaCode.luaKSetReturns(fs, e, extra);
+            if (extra > 1) {
+                LuaCode.luaKReserveRegs(fs, extra - 1);
+            }
+        } else {
+            if (e.k != ExpressionKind.VVOID) {
+            }
         }
     }
 
