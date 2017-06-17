@@ -60,6 +60,23 @@ public final class LuaState {
     public static final int CIST_LEQ = 1 << 7;
     public static final int CIST_FIN = 1 << 8;
 
-    int nci;
-    byte status;
+    public int nci;
+    public byte status;
+    public LuaTValue top;
+    public GlobalState lg;
+    public CallInfo ci;
+    public int oldPC;
+    public LuaTValue stackLast;
+    public LuaTValue stack;
+    public LuaFunc.UpVal  openUpVal;
+    public LuaState twups;
+    public LuaDo.LuaLongJmp errorJmp;
+    public CallInfo baseCI;
+    public int errFunc;
+    public int stackSize;
+    public int baseBhookCount;
+    public short nny;
+    public short nCCalls;
+    public int hookMask;
+    public byte allowHook;
 }

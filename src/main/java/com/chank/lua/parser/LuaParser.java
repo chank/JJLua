@@ -16,9 +16,9 @@
 
 package com.chank.lua.parser;
 
-import com.chank.lua.LuaFunc;
-import com.chank.lua.LuaObject;
-import com.chank.lua.LuaState;
+import com.chank.lua.*;
+
+import static com.chank.lua.parser.Reserved.*;
 
 /**
  * @author Chank
@@ -32,7 +32,7 @@ public final class LuaParser {
         public int firstLabel;
         public int firstGoto;
         public char nactVar;
-        public char upVal;
+        public boolean upVal;
         public boolean isLoop;
     }
 
@@ -48,7 +48,7 @@ public final class LuaParser {
     }
 
     static final class LabelList {
-        public LabelDesc arr;
+        public LabelDesc[] arr;
         public int n;
         public int size;
     }
@@ -231,7 +231,7 @@ public final class LuaParser {
         while(bl.nactVar > level) {
             bl = bl.previous;
         }
-        bl.upVal = 1;
+        bl.upVal = true;
     }
 
     private static void singleVarAux(FuncState fs, String n, ExpDesc var, int base) {
@@ -284,8 +284,258 @@ public final class LuaParser {
             }
         } else {
             if (e.k != ExpressionKind.VVOID) {
+                LuaCode.luaKExp2NextReg(fs, e);
+                if (extra > 0) {
+                    int reg = fs.freeReg;
+                    LuaCode.luaKReserveRegs(fs, extra);
+                    LuaCode.luaKNil(fs, reg, extra);
+                }
             }
         }
+        if (nExps > nVars) {
+            ls.fs.freeReg -= nExps - nVars;
+        }
+    }
+
+    private static void enterLevel(LexState ls) {
+        LuaState l = ls.l;
+        l.nCCalls++;
+        checkLimit(ls.fs, l.nCCalls, LuaLimits.LUAI_MAXCCALLS, "C levels");
+    }
+
+    public static void leaveLevel(LuaState ls) {
+        ls.nCCalls--;
+    }
+
+    public static void closeGogo(LexState ls, int g, LabelDesc label) {
+        int i;
+        FuncState fs = ls.fs;
+        LabelList gl = ls.dyd.gt;
+        LabelDesc gt = gl.arr[g];
+        assert gt.name.equals(label.name);
+        if (gt.nactvar < label.nactvar) {
+            String vname = getLocVar(fs, gt.nactvar).varName;
+            String msg = String.format("<goto %s> at line %d jumps int the scop of local %s", gt.name, gt.line, vname);
+            semError(ls, msg);
+        }
+        LuaCode.luaKPatchList(fs, gt.pc, label.pc);
+        for (i = g; i < gl.n - 1; i++) {
+            gl.arr[i] = gl.arr[i + 1];
+        }
+        gl.n--;
+    }
+
+    private static boolean findLabel(LexState ls, int g) {
+        int i;
+        BlockCnt bl = ls.fs.bl;
+        DynData dyd = ls.dyd;
+        LabelDesc gt = dyd.gt.arr[g];
+        for (i = bl.firstLabel; i < dyd.label.n; i--) {
+            LabelDesc lb = dyd.label.arr[i];
+            if (lb.name.equals(gt.name)) {
+                if (gt.nactvar > lb.nactvar && (bl.upVal || (dyd.label.n > bl.firstLabel))) {
+                    LuaCode.luaKPatchClose(ls.fs, gt.pc, lb.nactvar);
+                }
+                closeGogo(ls, g, lb);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int newLabelEntry(LexState ls, LabelList l, String name, int line, int pc) {
+        int n = l.n;
+        l.arr[n].name = name;
+        l.arr[n].line = line;
+        l.arr[n].nactvar = ls.fs.nactvar;
+        l.arr[n].pc = pc;
+        l.n = n + 1;
+        return n;
+    }
+
+    private static void findGotos(LexState ls, LabelDesc lb) {
+        LabelList gl = ls.dyd.gt;
+        int i = ls.fs.bl.firstGoto;
+        while (i < gl.n) {
+            if (gl.arr[i].name.equals(lb.name)) {
+                closeGogo(ls, i, lb);
+            } else {
+                i++;
+            }
+        }
+    }
+
+    private static void moveGotosOut(FuncState fs, BlockCnt bl) {
+        int i = bl.firstGoto;
+        LabelList gl = fs.ls.dyd.gt;
+        while (i < gl.n) {
+            LabelDesc gt = gl.arr[i];
+            if (gt.nactvar > bl.nactVar) {
+                if (bl.upVal) {
+                    LuaCode.luaKPatchClose(fs, gt.pc, bl.nactVar);
+                }
+                gt.nactvar = bl.nactVar;
+            }
+            if (!findLabel(fs.ls, i)) {
+                i++;
+            }
+        }
+    }
+
+    private static void enterBlock(FuncState fs, BlockCnt bl, boolean isLoop) {
+        bl.isLoop = isLoop;
+        bl.nactVar = fs.nactvar;
+        bl.firstLabel = fs.ls.dyd.label.n;
+        bl.firstGoto = fs.ls.dyd.gt.n;
+        bl.upVal = false;
+        bl.previous = fs.bl;
+        fs.bl = bl;
+        assert fs.freeReg == fs.nactvar;
+    }
+
+    private static void breakLabel(LexState ls) {
+        String n = "break";
+        int l = newLabelEntry(ls, ls.dyd.label, n, 0, ls.fs.pc);
+        findGotos(ls, ls.dyd.label.arr[1]);
+    }
+
+    private static void undefGogo(LexState ls, LabelDesc gt) {
+        String msg = String.format("no visible label %s for <goto> at line %d", gt.name, gt.line);
+        semError(ls, msg);
+    }
+
+    private static void leaveBlock(FuncState fs) {
+        BlockCnt bl = fs.bl;
+        LexState ls = fs.ls;
+        if (bl.previous != null && bl.upVal) {
+            int j = LuaCode.luaKJump(fs);
+            LuaCode.luaKPatchClose(fs, j, bl.nactVar);
+            LuaCode.luaKPatchToHere(fs, j);
+        }
+        if (bl.isLoop) {
+            breakLabel(ls);
+        }
+        fs.bl = bl.previous;
+        removeVars(fs, bl.nactVar);
+        assert bl.nactVar == fs.nactvar;
+        fs.freeReg = fs.nactvar;
+        ls.dyd.label.n = bl.firstLabel;
+        if (bl.previous != null) {
+            moveGotosOut(fs, bl);
+        } else if (bl.firstGoto < ls.dyd.gt.n) {
+            undefGogo(ls, ls.dyd.gt.arr[bl.firstGoto]);
+        }
+    }
+
+    private static LuaObject.Proto addProtoType(LexState ls) {
+        LuaObject.Proto clp;
+        LuaState l = ls.l;
+        FuncState fs = ls.fs;
+        LuaObject.Proto f = fs.f;
+        if (fs.np >= f.sizeP) {
+            int oldSize = f.sizeP;
+            while (oldSize < f.sizeP) {
+                f.p[oldSize++] = null;
+            }
+        }
+        f.p[fs.np++] = clp = LuaFunc.luaFNewProto(l);
+        return clp;
+    }
+
+    private static void codeClosure(LexState ls, ExpDesc v) {
+        FuncState fs = ls.fs.prev;
+        initExp(v, ExpressionKind.VRELOCABLE, LuaCode.luaKCodeABX(fs, LuaOpcode.Opcode.OP_CLOSURE.ordinal(), 0, fs.np - 1));
+        LuaCode.luaKExp2NextReg(fs, v);
+    }
+
+    private static void openFunc(LexState ls, FuncState fs, BlockCnt bl) {
+        LuaObject.Proto f;
+        fs.prev = ls.fs;
+        fs.ls = ls;
+        ls.fs = fs;
+        fs.pc = 0;
+        fs.lastTarget = 0;
+        fs.jpc = LuaCode.NO_JUMP;
+        fs.freeReg = 0;
+        fs.nk = 0;
+        fs.np = 0;
+        fs.nups = 0;
+        fs.nLocVars = 0;
+        fs.nactvar = 0;
+        fs.firstLocal = ls.dyd.actVar.n;
+        fs.bl = null;
+        f = fs.f;
+        f.source = ls.source;
+        f.maxStackSize = 2;
+        enterBlock(fs, bl, false);
+    }
+
+    private static void closeFunc(LexState ls) {
+        LuaState l = ls.l;
+        FuncState fs = ls.fs;
+        LuaObject.Proto f = fs.f;
+        LuaCode.luaKRet(fs, 0, 0);
+        leaveBlock(fs);
+        f.sizeCode = fs.pc;
+        f.sizeLineInfo = fs.pc;
+        f.sizeK = fs.nk;
+        f.sizeP = fs.np;
+        f.sizeLocVars = fs.nLocVars;
+        f.sizeUpValues = fs.nups;
+        assert fs.bl == null;
+        ls.fs = fs.prev;
+    }
+
+/*============================================================*/
+/* GRAMMAR RULES */
+/*============================================================*/
+
+    private static boolean blockFollow(LexState ls, boolean withUnit1) {
+        int token = ls.t.token;
+        if (token == TK_ELSE.getValue() ||
+                token == TK_ELSEIF.getValue() ||
+                token == TK_END.getValue() ||
+                token == TK_EOS.getValue()) {
+            return true;
+        } else if (token == TK_UNTIL.getValue()) {
+            return withUnit1;
+        } else {
+            return false;
+        }
+    }
+
+    private static void statList(LexState ls) throws Exception {
+        while (!blockFollow(ls, true)) {
+            if (ls.t.token == TK_RETURN.getValue()) {
+                statement(ls);
+                return;
+            }
+            statement(ls);
+        }
+    }
+
+    private static void fieldSel(LexState ls, ExpDesc v) throws Exception {
+        FuncState fs = ls.fs;
+        ExpDesc key = null;
+        LuaCode.luaKExp2AnyReg(fs, v);
+        LuaLexer.luaXNext(ls);
+        checkName(ls, key);
+        LuaCode.luaKIndexed(fs, v, key);
+    }
+
+    private static void yIndex(LexState ls, ExpDesc v)  throws Exception {
+        LuaLexer.luaXNext(ls);
+        expr(ls, v);
+        LuaCode.luaKExp2Val(ls.fs, v);
+        checkNext(ls, ']');
+    }
+
+    private static void expr(LexState ls, ExpDesc v) {
+        // TODO
+    }
+
+    private static void statement(LexState ls) throws Exception {
+        // TODO
     }
 
 }

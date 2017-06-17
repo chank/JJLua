@@ -79,6 +79,7 @@ public class LuaObject {
         public int[] lineInfo;
         public LocVar[] locVars;
         public UpValDesc[] upValues;
+        public String source;
     }
 
     public static final class Table {

@@ -61,7 +61,7 @@ public enum Reserved {
     TK_NAME,
     TK_STRING;
 
-    private int value;
+    private final int value;
     private static int nextValue;
 
     Reserved() {
