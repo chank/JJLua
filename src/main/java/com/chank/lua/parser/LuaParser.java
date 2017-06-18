@@ -530,6 +530,198 @@ public final class LuaParser {
         checkNext(ls, ']');
     }
 
+    public static class ConsControl {
+        public ExpDesc v;
+        public ExpDesc t;
+        public int nh;
+        public int na;
+        public int toStore;
+    }
+
+    private static void recField(LexState ls, ConsControl cc) throws Exception {
+        FuncState fs = ls.fs;
+        int reg = ls.fs.freeReg;
+        ExpDesc key = null;
+        ExpDesc val = null;
+        int rkKey;
+        if (ls.t.token == TK_NAME.getValue()) {
+            checkLimit(fs, cc.nh, LuaLimits.MAX_INT, "items in a constructor");
+            checkName(ls, key);
+        } else {
+            yIndex(ls, key);
+        }
+        cc.nh++;
+        checkNext(ls, '=');
+        rkKey = LuaCode.luaKExp2RK(fs, key);
+        expr(ls, val);
+        LuaCode.luaKCodeABC(fs, LuaOpcode.Opcode.OP_SETTABLE, cc.t.info, rkKey, LuaCode.luaKExp2RK(fs, val));
+        fs.freeReg = reg;
+    }
+
+    private static void closeListField(FuncState fs, ConsControl cc) {
+        if (cc.v.k == ExpressionKind.VVOID) {
+            return;
+        }
+        LuaCode.luaKExp2NextReg(fs, cc.v);
+        if (cc.toStore == LuaOpcode.LFIELDS_PER_FLUSH) {
+            LuaCode.luaKSetList(fs, cc.t.info, cc.na, cc.toStore);
+            cc.toStore = 0;
+        }
+    }
+
+    private static void lastListField(FuncState fs, ConsControl cc) {
+        if (cc.toStore == 0) {
+            return;
+        }
+        if (hasMultret(cc.v.k)) {
+            LuaCode.luaKSetMultret(fs, cc.v);
+            LuaCode.luaKSetList(fs, cc.t.info, cc.na, Lua.LUA_MULTREL);
+        } else {
+            if (cc.v.k != ExpressionKind.VVOID) {
+                LuaCode.luaKExp2NextReg(fs, cc.v);
+            }
+            LuaCode.luaKSetList(fs, cc.t.info, cc.na, cc.toStore);
+        }
+    }
+
+    private static void listField(LexState ls, ConsControl cc) {
+        expr(ls, cc.v);
+        checkLimit(ls.fs, cc.na, LuaLimits.MAX_INT, "items in a constructor");
+        cc.na++;
+        cc.toStore++;
+    }
+
+    private static void field(LexState ls, ConsControl cc) throws Exception {
+        if (ls.t.token == TK_NAME.getValue()) {
+            if (LuaLexer.luaXLookahead(ls) != '=') {
+                listField(ls, cc);
+            } else {
+                recField(ls, cc);
+            }
+        } else if (ls.t.token == '[') {
+            recField(ls, cc);
+        } else {
+            listField(ls, cc);
+        }
+    }
+
+    private static void constructor(LexState ls, ExpDesc t) throws Exception {
+        FuncState fs = ls.fs;
+        int line = ls.lineNumber;
+        int pc = LuaCode.luaKCodeABC(fs, LuaOpcode.Opcode.OP_NEWTABLE, 0, 0, 0);
+        ConsControl cc = new ConsControl();
+        cc.na = cc.nh = cc.toStore = 0;
+        cc.t = t;
+        initExp(t, ExpressionKind.VRELOCABLE, pc);
+        initExp(cc.v, ExpressionKind.VVOID, 0);
+        LuaCode.luaKExp2NextReg(ls.fs, t);
+        checkNext(ls, '{');
+        do {
+            assert cc.v.k == ExpressionKind.VVOID || cc.toStore > 0;
+            if (ls.t.token == '}') {
+                break;
+            }
+            closeListField(fs, cc);
+            field(ls, cc);
+        } while (testNext(ls, ',') || testNext(ls, ';'));
+        checkMatch(ls, '}', '{', line);
+        lastListField(fs, cc);
+        LuaOpcode.setArgB(fs.f.code[pc], cc.na);
+        LuaOpcode.setArgC(fs.f.code[pc], cc.nh);
+    }
+
+    private static void parList(LexState ls) throws Exception {
+        FuncState fs = ls.fs;
+        LuaObject.Proto f = fs.f;
+        int nParams = 0;
+        f.isVarArg = false;
+        if (ls.t.token != ')') {
+            do {
+                if (ls.t.token == TK_NAME.getValue()) {
+                    newLocalVar(ls, strCheckName(ls));
+                    nParams++;
+                    break;
+                } else if (ls.t.token == TK_DOTS.getValue()) {
+                    LuaLexer.luaXNext(ls);
+                    f.isVarArg = true;
+                    break;
+                } else {
+                    LuaLexer.luaXSyntaxError(ls, "<name> or '...' expected");
+                }
+            } while (!f.isVarArg && testNext(ls, ','));
+        }
+        adjustLocalVars(ls, nParams);
+        f.numParams = (byte)fs.nactvar;
+        LuaCode.luaKReserveRegs(fs, fs.nactvar);
+    }
+
+    private static void body(LexState ls, ExpDesc e, boolean isMethod, int line) throws Exception {
+        FuncState newFs = new FuncState();
+        BlockCnt bl = new BlockCnt();
+        newFs.f = addProtoType(ls);
+        newFs.f.lineDefined = line;
+        openFunc(ls, newFs, bl);
+        checkNext(ls, '(');
+        if (isMethod) {
+            newLocalVarLiteral1(ls, "self");
+            adjustLocalVars(ls, 1);
+        }
+        parList(ls);
+        checkNext(ls, ')');
+        statList(ls);
+        newFs.f.lastLineDefined = ls.lineNumber;
+        checkMatch(ls, TK_END.getValue(), TK_FUNCTION.getValue(), line);
+        codeClosure(ls, e);
+        closeFunc(ls);
+    }
+
+    private static int expList(LexState ls, ExpDesc v) {
+        int n = 1;
+        expr(ls, v);
+        while (testNext(ls, ',')) {
+            LuaCode.luaKExp2NextReg(ls.fs, v);
+            expr(ls, v);
+            n++;
+        }
+        return n;
+    }
+
+    private static void funcArgs(LexState ls, ExpDesc f, int line) throws Exception {
+        FuncState fs = ls.fs;
+        ExpDesc args = new ExpDesc();
+        int base, nParams;
+        if (ls.t.token == '(') {
+            LuaLexer.luaXNext(ls);
+            if (ls.t.token == ')') {
+                args.k = ExpressionKind.VVOID;
+            } else {
+                expList(ls, args);
+                LuaCode.luaKSetMultret(fs, args);
+            }
+            checkMatch(ls, ')', '(', line);
+        } else if (ls.t.token == '{') {
+            constructor(ls, args);
+        } else if (ls.t.token == TK_STRING.getValue()) {
+            codeString(ls, args, ls.t.semInfo.ts);
+            LuaLexer.luaXNext(ls);
+        } else {
+            LuaLexer.luaXSyntaxError(ls, "function arguments expected");
+        }
+        assert f.k == ExpressionKind.VNONRELOC;
+        base = f.info;
+        if (hasMultret(args.k)) {
+            nParams = Lua.LUA_MULTREL;
+        } else {
+            if (args.k != ExpressionKind.VVOID) {
+                LuaCode.luaKExp2NextReg(fs, args);
+            }
+            nParams = fs.freeReg - (base + 1);
+        }
+        initExp(f, ExpressionKind.VCALL, LuaCode.luaKCodeABC(fs, LuaOpcode.Opcode.OP_CALL, base, nParams + 1, 2));
+        LuaCode.luaKFixLine(fs, line);
+        fs.freeReg = base + 1;
+    }
+
     private static void expr(LexState ls, ExpDesc v) {
         // TODO
     }

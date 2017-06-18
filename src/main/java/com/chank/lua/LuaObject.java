@@ -63,7 +63,7 @@ public class LuaObject {
 
     public static final class Proto {
         public byte numParams;
-        public byte isVarArg;
+        public boolean isVarArg;
         public byte maxStackSize;
         public int sizeUpValues;
         public int sizeK;

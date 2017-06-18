@@ -437,7 +437,7 @@ public final class LuaLexer {
         }
     }
 
-    static void luaXNext(LexState ls) throws Exception {
+    public static void luaXNext(LexState ls) throws Exception {
         ls.lastLine = ls.lineNumber;
         if (ls.lookahead.token != Reserved.TK_EOS.getValue()) {
             ls.t = ls.lookahead;
@@ -447,7 +447,7 @@ public final class LuaLexer {
         }
     }
 
-    private static int luaXLookahead(LexState ls) throws Exception {
+    public static int luaXLookahead(LexState ls) throws Exception {
         assert (ls.lookahead.token == Reserved.TK_EOS.getValue());
         ls.lookahead.token = llex(ls, ls.lookahead.semInfo);
         return ls.lookahead.token;

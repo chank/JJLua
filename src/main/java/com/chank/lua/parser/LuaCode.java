@@ -62,6 +62,22 @@ public final class LuaCode {
 
     public static final int NO_JUMP = -1;
 
+    public static int getInstrunction(FuncState fs, ExpDesc e) {
+        return fs.f.code[e.info];
+    }
+
+    public static int luaKCodeAsBx(FuncState fs, int o, int a, int sBx) {
+        return luaKCodeABX(fs, o, a, (sBx) + MAX_ARG_SBX);
+    }
+
+    public static void luaKSetMultret(FuncState fs, ExpDesc e) {
+        luaKSetReturns(fs, e, Lua.LUA_MULTREL);
+    }
+
+    public static void luaKJumpTo(FuncState fs, int t) {
+        luaKPatchList(fs, luaKJump(fs), t);
+    }
+
     public static boolean hasJumps(ExpDesc e) {
         return e.t != e.f;
     }
