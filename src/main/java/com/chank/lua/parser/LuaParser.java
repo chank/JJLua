@@ -17,6 +17,8 @@
 package com.chank.lua.parser;
 
 import com.chank.lua.*;
+import com.chank.lua.util.ZIO;
+import jdk.nashorn.internal.runtime.regexp.joni.constants.OPCode;
 
 import static com.chank.lua.parser.Reserved.*;
 
@@ -303,8 +305,8 @@ public final class LuaParser {
         checkLimit(ls.fs, l.nCCalls, LuaLimits.LUAI_MAXCCALLS, "C levels");
     }
 
-    public static void leaveLevel(LuaState ls) {
-        ls.nCCalls--;
+    public static void leaveLevel(LexState ls) {
+        ls.l.nCCalls--;
     }
 
     public static void closeGogo(LexState ls, int g, LabelDesc label) {
@@ -584,7 +586,7 @@ public final class LuaParser {
         }
     }
 
-    private static void listField(LexState ls, ConsControl cc) {
+    private static void listField(LexState ls, ConsControl cc) throws Exception {
         expr(ls, cc.v);
         checkLimit(ls.fs, cc.na, LuaLimits.MAX_INT, "items in a constructor");
         cc.na++;
@@ -675,7 +677,7 @@ public final class LuaParser {
         closeFunc(ls);
     }
 
-    private static int expList(LexState ls, ExpDesc v) {
+    private static int expList(LexState ls, ExpDesc v) throws Exception {
         int n = 1;
         expr(ls, v);
         while (testNext(ls, ',')) {
@@ -722,12 +724,666 @@ public final class LuaParser {
         fs.freeReg = base + 1;
     }
 
-    private static void expr(LexState ls, ExpDesc v) {
-        // TODO
+    private static void primaryExp(LexState ls, ExpDesc v) throws Exception {
+        if (ls.t.token == '(') {
+            int line = ls.lineNumber;
+            LuaLexer.luaXNext(ls);
+            expr(ls, v);
+            checkMatch(ls, ')', '(', line);
+            LuaCode.luaKDischargeVars(ls.fs, v);
+            return;
+        } else if (ls.t.token == TK_NAME.getValue()) {
+            singleVar(ls, v);
+            return;
+        } else {
+            LuaLexer.luaXSyntaxError(ls, "unexpected symbol");
+        }
+    }
+
+    private static void suffixedExp(LexState ls, ExpDesc v) throws Exception {
+        FuncState fs = ls.fs;
+        int line = ls.lineNumber;
+        primaryExp(ls, v);
+        for (;;) {
+            if (ls.t.token == '.') {
+                fieldSel(ls, v);
+                break;
+            } else if (ls.t.token == '[') {
+                ExpDesc key = null;
+                LuaCode.luaKExp2AnyReg(fs, v);
+                yIndex(ls, key);
+                LuaCode.luaKIndexed(fs, v, key);
+                break;
+            } else if (ls.t.token == ':') {
+                ExpDesc key = null;
+                LuaLexer.luaXNext(ls);
+                checkName(ls, key);
+                LuaCode.lulaKSelf(fs, v, key);
+                funcArgs(ls, v, line);
+                break;
+            } else if (ls.t.token == '(' || ls.t.token == TK_STRING.getValue() || ls.t.token == '{') {
+                LuaCode.luaKExp2NextReg(fs, v);
+                funcArgs(ls, v, line);
+                break;
+            } else {
+                return;
+            }
+        }
+    }
+
+    private static void simpleExp(LexState ls, ExpDesc v) throws Exception {
+        if (ls.t.token == TK_FLT.getValue()) {
+            initExp(v, ExpressionKind.VKFLT, 0);
+            v.nval = ls.t.semInfo.r;
+        } else if (ls.t.token == TK_INT.getValue()) {
+            initExp(v, ExpressionKind.VKINT, 0);
+            v.ival = ls.t.semInfo.i;
+        } else if (ls.t.token == TK_STRING.getValue()) {
+            codeString(ls, v, ls.t.semInfo.ts);
+        } else if (ls.t.token == TK_NIL.getValue()) {
+            initExp(v, ExpressionKind.VNIL, 0);
+        } else if (ls.t.token == TK_TRUE.getValue()) {
+            initExp(v, ExpressionKind.VTRUE, 0);
+        } else if (ls.t.token == TK_FALSE.getValue()) {
+            initExp(v, ExpressionKind.VFALSE, 0);
+        } else if (ls.t.token == TK_DOTS.getValue()) {
+            FuncState fs = ls.fs;
+            checkCondition(ls, fs.f.isVarArg, "cannot use '...' outside a vararg function");
+            initExp(v, ExpressionKind.VVARARG, LuaCode.luaKCodeABC(fs, LuaOpcode.Opcode.OP_VARARG, 0, 1, 0));
+        } else if (ls.t.token == '{') {
+            constructor(ls, v);
+        } else if (ls.t.token == TK_FUNCTION.getValue()) {
+            LuaLexer.luaXNext(ls);
+            body(ls, v, false, ls.lineNumber);
+        } else {
+            suffixedExp(ls, v);
+        }
+        LuaLexer.luaXNext(ls);
+    }
+
+    private static LuaCode.UnOPR getUnopr(int op) {
+        if (op == TK_NOT.getValue()) {
+            return LuaCode.UnOPR.OPR_NOT;
+        } else if (op == '-') {
+            return LuaCode.UnOPR.OPR_MINUS;
+        } else if (op == '~') {
+            return LuaCode.UnOPR.OPR_BNOT;
+        } else if (op == '#') {
+            return LuaCode.UnOPR.OPR_LEN;
+        } else {
+            return LuaCode.UnOPR.OPR_NOUNOPR;
+        }
+    }
+
+    private static LuaCode.BinOpr getBinOpr(int op) {
+        if (op == '+') {
+            return LuaCode.BinOpr.OPR_ADD;
+        } else if (op == '-') {
+            return LuaCode.BinOpr.OPR_SUB;
+        } else if (op == '*') {
+            return LuaCode.BinOpr.OPR_MUL;
+        } else if (op == '%') {
+            return LuaCode.BinOpr.OPR_MOD;
+        } else if (op == '^') {
+            return LuaCode.BinOpr.OPR_POW;
+        } else if (op == '/') {
+            return LuaCode.BinOpr.OPR_DIV;
+        } else if (op == TK_IDIV.getValue()) {
+            return LuaCode.BinOpr.OPR_IDIV;
+        } else if (op == '&') {
+            return LuaCode.BinOpr.OPR_BAND;
+        } else if (op == '|') {
+            return LuaCode.BinOpr.OPR_BOR;
+        } else if (op == '~') {
+            return LuaCode.BinOpr.OPR_BXOR;
+        } else if (op == TK_SHL.getValue()) {
+            return LuaCode.BinOpr.OPR_SHL;
+        } else if (op == TK_SHR.getValue()) {
+            return LuaCode.BinOpr.OPR_SHR;
+        } else if (op == TK_CONCAT.getValue()) {
+            return LuaCode.BinOpr.OPR_CONCAT;
+        } else if (op == TK_NE.getValue()) {
+            return LuaCode.BinOpr.OPR_NE;
+        } else if (op == TK_EQ.getValue()) {
+            return LuaCode.BinOpr.OPR_EQ;
+        } else if (op == '<') {
+            return LuaCode.BinOpr.OPR_LT;
+        } else if (op == TK_GE.getValue()) {
+            return LuaCode.BinOpr.OPR_GE;
+        } else if (op == TK_AND.getValue()) {
+            return LuaCode.BinOpr.OPR_ADD;
+        } else if (op == TK_OR.getValue()) {
+            return LuaCode.BinOpr.OPR_OR;
+        } else {
+            return LuaCode.BinOpr.OPR_NOBINOPR;
+        }
+    }
+
+    private static final class Priority {
+        public int left;
+        public int right;
+
+        public Priority(int left, int right) {
+            this.left = left;
+            this.right = right;
+        }
+    }
+
+    private static Priority[] priorities = {
+            new Priority(10, 10), new Priority(10, 10), /* '+' '-' */
+            new Priority(11, 11), new Priority(11, 11), /* '*' '%' */
+            new Priority(14, 13), /* '^' (right associative) */
+            new Priority(11, 11), new Priority(11, 11), /* '/' '//' */
+            new Priority(6, 6), new Priority(4, 4), new Priority(5, 5), /* '&' '|' "~' */
+            new Priority(7, 7), new Priority(7, 7), /* '<<' '>>' */
+            new Priority(9, 8), /* '..' (right associative) */
+            new Priority(3, 3), new Priority(3, 3), new Priority(3, 3), /* ==, <, <= */
+            new Priority(3, 3), new Priority(3, 3), new Priority(3, 3), /* ~=, >, >= */
+            new Priority(2, 2), new Priority(1, 1) /* and, or */
+    };
+
+    public static final int UNARY_PRIORITY = 12;
+
+    private static LuaCode.BinOpr subExpr(LexState ls, ExpDesc v, int limit) throws Exception {
+        LuaCode.BinOpr op;
+        LuaCode.UnOPR uop;
+        enterLevel(ls);
+        uop = getUnopr(ls.t.token);
+        if (uop != LuaCode.UnOPR.OPR_NOUNOPR) {
+            int line = ls.lineNumber;
+            LuaLexer.luaXNext(ls);
+            subExpr(ls, v, UNARY_PRIORITY);
+            LuaCode.luaKPrefix(ls.fs, uop, v, line);
+        } else {
+            simpleExp(ls, v);
+        }
+        op = getBinOpr(ls.t.token);
+        while (op != LuaCode.BinOpr.OPR_NOBINOPR && priorities[op.ordinal()].left > limit) {
+            ExpDesc v2 = null;
+            LuaCode.BinOpr nextOP;
+            int line = ls.lineNumber;
+            LuaLexer.luaXNext(ls);
+            LuaCode.luaKInfix(ls.fs, op, v);
+            nextOP = subExpr(ls, v2, priorities[op.ordinal()].right);
+            LuaCode.luaKPosFix(ls.fs, op, v, v2, line);
+            op = nextOP;
+        }
+        leaveLevel(ls);
+        return op;
+    }
+
+    private static void expr(LexState ls, ExpDesc v) throws Exception {
+        subExpr(ls, v, 0);
+    }
+
+    private static void block(LexState ls) throws Exception {
+        FuncState fs = ls.fs;
+        BlockCnt bl = null;
+        enterBlock(fs, bl, false);
+        statList(ls);
+        leaveBlock(fs);
+    }
+
+    public static final class LHSAssign {
+        public LHSAssign prev;
+        ExpDesc v;
+
+        public LHSAssign(LHSAssign prev, ExpDesc v) {
+            this.prev = prev;
+            this.v = v;
+        }
+    }
+
+    private static void checkConflict(LexState ls, LHSAssign lh, ExpDesc v) {
+        FuncState fs = ls.fs;
+        int extra = fs.freeReg;
+        boolean conflict = false;
+        for (; lh != null; lh = lh.prev) {
+            if (lh.v.k == ExpressionKind.VINDEXED) {
+                if (lh.v.ind.vt == v.k.getValue() && lh.v.ind.t == v.info) {
+                    conflict = true;
+                    lh.v.ind.vt = ExpressionKind.VLOCAL.getValue();
+                    lh.v.ind.t = extra;
+                }
+                if (v.k == ExpressionKind.VLOCAL && lh.v.ind.idx == v.info) {
+                    conflict = true;
+                    lh.v.ind.idx = extra;
+                }
+            }
+        }
+        if (conflict) {
+            LuaOpcode.Opcode op = (v.k == ExpressionKind.VLOCAL)? LuaOpcode.Opcode.OP_MOD: LuaOpcode.Opcode.OP_GETUPVAL;
+            LuaCode.luaKCodeABC(fs, op, extra, v.info, 0);
+            LuaCode.luaKReserveRegs(fs, 1);
+        }
+    }
+
+    public static boolean vkIsVar(int k) {
+        return ExpressionKind.VLOCAL.getValue() <= k && k <= ExpressionKind.VINDEXED.getValue();
+    }
+
+    public static boolean vkIsInReg(int k) {
+        return k == ExpressionKind.VNONRELOC.getValue() || k == ExpressionKind.VLOCAL.getValue();
+    }
+
+    private static void assignment(LexState ls, LHSAssign lh, int nvars) throws Exception {
+        ExpDesc e = null;
+        checkCondition(ls, vkIsVar(lh.v.k.getValue()), "syntax error");
+        if (testNext(ls, ',')) {
+            LHSAssign nv = null;
+            nv.prev = lh;
+            suffixedExp(ls, nv.v);
+            if (nv.v.k != ExpressionKind.VINDEXED) {
+                checkConflict(ls, lh, nv.v);
+            }
+            checkLimit(ls.fs, nvars + ls.l.nCCalls, LuaLimits.LUAI_MAXCCALLS, "C levels");
+            assignment(ls, nv, nvars + 1);
+        } else {
+            int nexps;
+            checkNext(ls, '=');
+            nexps = expList(ls, e);
+            if (nexps != nvars) {
+                adjustAssign(ls, nvars, nexps, e);
+            } else {
+                LuaCode.luaKSetOneRet(ls.fs, e);
+                LuaCode.luaKStoreVar(ls.fs, lh.v, e);
+                return;
+            }
+        }
+        initExp(e, ExpressionKind.VNONRELOC, ls.fs.freeReg - 1);
+        LuaCode.luaKStoreVar(ls.fs, lh.v, e);
+    }
+
+    private static int cond(LexState ls) throws Exception {
+        ExpDesc v = null;
+        expr(ls, v);
+        if (v.k != ExpressionKind.VNIL) {
+            v.k = ExpressionKind.VFALSE;
+        }
+        LuaCode.luaKGoIfTrue(ls.fs, v);
+        return v.f;
+    }
+
+    private static void gotoStat(LexState ls, int pc) throws Exception {
+        int line = ls.lineNumber;
+        String label;
+        int g;
+        if (testNext(ls, TK_GOTO.getValue())) {
+            label = strCheckName(ls);
+        } else {
+            LuaLexer.luaXNext(ls);
+            label = "break";
+        }
+        g = newLabelEntry(ls, ls.dyd.gt, label, line, pc);
+        findLabel(ls, g);
+    }
+
+    private static void checkRepeated(FuncState fs, LabelList ll, String label) {
+        int i;
+        for (i = fs.bl.firstLabel; i < ll.n; i++) {
+            if (label.equals(ll.arr[i].name)) {
+                String msg = String.format("label '%s' already defined on line %d", label, ll.arr[i].line);
+                semError(fs.ls, msg);
+            }
+        }
+    }
+
+    private static void skipNoOpStat(LexState ls) throws Exception {
+        while (ls.t.token == ';' || ls.t.token == TK_DBCOLON.getValue()) {
+            statement(ls);
+        }
+    }
+
+    private static void labelStat(LexState ls, String label, int line) throws Exception {
+        FuncState fs = ls.fs;
+        LabelList ll = ls.dyd.label;
+        int l;
+        checkRepeated(fs, ll, label);
+        checkNext(ls, TK_DBCOLON.getValue());
+        l = newLabelEntry(ls, ll, label, line, LuaCode.luaKGetLabel(fs));
+        skipNoOpStat(ls);
+        if (blockFollow(ls, false)) {
+            ll.arr[l].nactvar = fs.bl.nactVar;
+        }
+        findGotos(ls, ll.arr[l]);
+    }
+
+    private static void whileStat(LexState ls, int line) throws Exception {
+        FuncState fs = ls.fs;
+        int whileInit;
+        int condExit;
+        BlockCnt bl = null;
+        LuaLexer.luaXNext(ls);
+        whileInit = LuaCode.luaKGetLabel(fs);
+        condExit = cond(ls);
+        enterBlock(fs, bl, true);
+        checkNext(ls, TK_DO.getValue());
+        block(ls);
+        LuaCode.luaKJumpTo(fs, whileInit);
+        checkMatch(ls, TK_END.getValue(), TK_WHILE.getValue(), line);
+        leaveBlock(fs);
+        LuaCode.luaKPatchToHere(fs, condExit);
+    }
+
+    private static void repeatStat(LexState ls, int line)  throws Exception {
+        int condExit;
+        FuncState fs = ls.fs;
+        int repeatInit = LuaCode.luaKGetLabel(fs);
+        BlockCnt bl1 = null, bl2 = null;
+        enterBlock(fs, bl1, true);
+        enterBlock(fs, bl2, false);
+        LuaLexer.luaXNext(ls);
+        statList(ls);
+        checkMatch(ls, TK_UNTIL.getValue(), TK_REPEAT.getValue(), line);
+        condExit = cond(ls);
+        if (bl2.upVal) {
+            LuaCode.luaKPatchClose(fs, condExit, bl2.nactVar);
+        }
+        leaveBlock(fs);
+        LuaCode.luaKPatchList(fs, condExit, repeatInit);
+        leaveBlock(fs);
+    }
+
+    private static int exp1(LexState ls) throws Exception {
+        ExpDesc e = null;
+        int reg;
+        expr(ls, e);
+        LuaCode.luaKExp2NextReg(ls.fs, e);
+        assert e.k == ExpressionKind.VNONRELOC;
+        reg = e.info;
+        return reg;
+    }
+
+    private static void forBody(LexState ls, int base, int line, int nvars, boolean isNum) throws Exception {
+        BlockCnt bl = null;
+        FuncState fs = ls.fs;
+        int prep, endFor;
+        adjustLocalVars(ls, 3);
+        checkNext(ls, TK_DO.getValue());
+        prep = isNum ? LuaCode.luaKCodeAsBx(fs, LuaOpcode.Opcode.OP_FORPREF.ordinal(), base, LuaCode.NO_JUMP) : LuaCode.luaKJump(fs);
+        enterBlock(fs, bl, false);
+        adjustLocalVars(ls, nvars);
+        LuaCode.luaKReserveRegs(fs, nvars);
+        block(ls);
+        leaveBlock(fs);
+        LuaCode.luaKPatchToHere(fs, prep);
+        if (isNum) {
+            endFor = LuaCode.luaKCodeAsBx(fs, LuaOpcode.Opcode.OP_FORLOOP.ordinal(), base, LuaCode.NO_JUMP);
+        } else {
+            LuaCode.luaKCodeABC(fs, LuaOpcode.Opcode.OP_TFORCALL, base, 0, nvars);
+            LuaCode.luaKFixLine(fs, line);
+            endFor = LuaCode.luaKCodeAsBx(fs, LuaOpcode.Opcode.OP_TFORLOOP.ordinal(), base + 2, LuaCode.NO_JUMP);
+        }
+        LuaCode.luaKPatchList(fs, endFor, prep + 1);
+        LuaCode.luaKFixLine(fs, line);
+    }
+
+    private static void forNum(LexState ls, String varName, int line) throws Exception {
+        FuncState fs = ls.fs;
+        int base = fs.freeReg;
+        newLocalVarLiteral(ls, "(for index)", 0);
+        newLocalVarLiteral(ls, "(for limit)", 0);
+        newLocalVarLiteral(ls, "(for step)", 0);
+        newLocalVar(ls, varName);
+        checkNext(ls, '=');
+        exp1(ls);
+        checkNext(ls, ',');
+        exp1(ls);
+        if (testNext(ls, ',')) {
+            exp1(ls);
+        } else {
+            LuaCode.luaKCodeK(fs, fs.freeReg, LuaCode.luaKIntK(fs, 1));
+            LuaCode.luaKReserveRegs(fs, 1);
+        }
+        forBody(ls, base ,line, 1, true);
+    }
+
+    private static void forList(LexState ls, String indexName) throws Exception {
+        FuncState fs = ls.fs;
+        ExpDesc e = null;
+        int nvars = 4;
+        int line;
+        int base = fs.freeReg;
+        newLocalVarLiteral(ls, "(for generator)", 0);
+        newLocalVarLiteral(ls, "(for state)", 0);
+        newLocalVarLiteral(ls, "(for control)", 0);
+        newLocalVar(ls, indexName);
+        while (testNext(ls, ',')) {
+            newLocalVar(ls, strCheckName(ls));
+            nvars++;
+        }
+        checkNext(ls, TK_IN.getValue());
+        line = ls.lineNumber;
+        adjustAssign(ls, 3, expList(ls, e), e);
+        LuaCode.luaKCheckStack(fs, 3);
+        forBody(ls, base, line, nvars - 3, false);
+    }
+
+    private static void forStat(LexState ls, int line) throws Exception {
+        FuncState fs = ls.fs;
+        String varName;
+        BlockCnt bl = null;
+        enterBlock(fs, bl, true);
+        LuaLexer.luaXNext(ls);
+        varName = strCheckName(ls);
+        if (ls.t.token == '=') {
+            forNum(ls, varName, line);
+        } else if (ls.t.token == ',' || ls.t.token == TK_IN.getValue()) {
+            forList(ls, varName);
+        } else {
+            LuaLexer.luaXSyntaxError(ls, "'=' or 'in' expected");
+        }
+        checkMatch(ls, TK_END.getValue(), TK_FOR.getValue(), line);
+        leaveBlock(fs);
+    }
+
+    private static void testThenBlock(LexState ls, int escapeList) throws Exception {
+        BlockCnt bl = null;
+        FuncState fs = ls.fs;
+        ExpDesc v = null;
+        int jf;
+        LuaLexer.luaXNext(ls);
+        expr(ls, v);
+        checkNext(ls, TK_THEN.getValue());
+        if (ls.t.token == TK_GOTO.getValue() || ls.t.token == TK_BREAK.getValue()) {
+            LuaCode.luaKGoIfFalse(ls.fs, v);
+            enterBlock(fs, bl, false);
+            gotoStat(ls, v.t);
+            skipNoOpStat(ls);
+            if (blockFollow(ls, false)) {
+                leaveBlock(fs);
+                return;
+            } else {
+                jf = LuaCode.luaKJump(fs);
+            }
+        } else {
+            LuaCode.luaKGoIfTrue(ls.fs, v);
+            enterBlock(fs, bl, false);
+            jf = v.f;
+        }
+        statList(ls);
+        leaveBlock(fs);
+        if (ls.t.token == TK_ELSE.getValue() || ls.t.token == TK_ELSEIF.getValue()) {
+            LuaCode.luaKConcat(fs, escapeList, LuaCode.luaKJump(fs));
+        }
+        LuaCode.luaKPatchToHere(fs, jf);
+    }
+
+    private static void ifStat(LexState ls, int line) throws Exception {
+        FuncState fs = ls.fs;
+        int escapeList = LuaCode.NO_JUMP;
+        testThenBlock(ls, escapeList);
+        while (ls.t.token == TK_ELSEIF.getValue()) {
+            testThenBlock(ls, escapeList);
+        }
+        if (testNext(ls, TK_ELSE.getValue())) {
+            block(ls);
+        }
+        checkMatch(ls, TK_END.getValue(), TK_IF.getValue(), line);
+        LuaCode.luaKPatchToHere(fs, escapeList);
+    }
+
+    private static void localFunc(LexState ls) throws Exception {
+        ExpDesc b = null;
+        FuncState fs = ls.fs;
+        newLocalVar(ls, strCheckName(ls));
+        adjustLocalVars(ls, 1);
+        body(ls, b, false, ls.lineNumber);
+        getLocVar(fs, b.info).startPC = fs.pc;
+    }
+
+    private static void localStat(LexState ls) throws Exception {
+        int nvars = 0;
+        int nexps;
+        ExpDesc e = null;
+        do {
+            newLocalVar(ls, strCheckName(ls));
+            nvars++;
+        } while (testNext(ls, ','));
+        if (testNext(ls, '=')) {
+            nexps = expList(ls, e);
+        } else {
+            e.k = ExpressionKind.VVOID;
+            nexps = 0;
+        }
+        adjustAssign(ls, nvars, nexps, e);
+        adjustLocalVars(ls, nvars);
+    }
+
+    private static boolean funcName(LexState ls, ExpDesc v) throws Exception {
+        boolean isMethod = false;
+        singleVar(ls, v);
+        while (ls.t.token == '.') {
+            fieldSel(ls, v);
+        }
+        if (ls.t.token == ':') {
+            isMethod = true;
+            fieldSel(ls, v);
+        }
+        return isMethod;
+    }
+
+
+    private static void funcStat(LexState ls, int line) throws Exception {
+        boolean isMethod;
+        ExpDesc v = null, b= null;
+        LuaLexer.luaXNext(ls);
+        isMethod = funcName(ls, v);
+        body(ls, b, isMethod, line);
+        LuaCode.luaKStoreVar(ls.fs, v, b);
+        LuaCode.luaKFixLine(ls.fs, line);
+    }
+
+    private static void exprStat(LexState ls) throws Exception {
+        FuncState fs = ls.fs;
+        LHSAssign v = null;
+        suffixedExp(ls, v.v);
+        if (ls.t.token == '=' || ls.t.token == ',') {
+            v.prev = null;
+            assignment(ls, v, 1);
+        } else {
+            checkCondition(ls, v.v.k == ExpressionKind.VCALL, "syntax error");
+            LuaOpcode.setArgC(LuaCode.getInstruction(fs, v.v), 1);
+        }
+    }
+
+    private static void retStat(LexState ls) throws Exception {
+        FuncState fs = ls.fs;
+        ExpDesc e = null;
+        int first, nret;
+        if (blockFollow(ls, true) || ls.t.token == ';') {
+            first = nret = 0;
+        } else {
+            nret = expList(ls, e);
+            if (hasMultret(e.k)) {
+                LuaCode.luaKSetMultret(fs, e);
+                if (e.k == ExpressionKind.VCALL && nret == 1) {
+                    LuaOpcode.setOpcode(LuaCode.getInstruction(fs, e), LuaOpcode.Opcode.OP_TAILCALL.ordinal());
+                }
+                first = fs.nactvar;
+                nret = Lua.LUA_MULTREL;
+            } else {
+                if (nret == 1) {
+                    first = LuaCode.luaKExp2AnyReg(fs, e);
+                } else {
+                    LuaCode.luaKExp2NextReg(fs, e);
+                    first = fs.nactvar;
+                    assert nret == fs.freeReg - first;
+                }
+            }
+        }
+        LuaCode.luaKRet(fs, first, nret);
+        testNext(ls, ';');
     }
 
     private static void statement(LexState ls) throws Exception {
-        // TODO
+        int line = ls.lineNumber;
+        enterLevel(ls);
+        if (ls.t.token == ';') {
+            LuaLexer.luaXNext(ls);
+        } else if (ls.t.token == TK_IF.getValue()) {
+            ifStat(ls, line);
+        } else if (ls.t.token == TK_WHILE.getValue()) {
+            whileStat(ls, line);
+        } else if (ls.t.token == TK_DO.getValue()) {
+            LuaLexer.luaXNext(ls);
+            block(ls);
+            checkMatch(ls, TK_END.getValue(), TK_DO.getValue(), line);
+        } else if (ls.t.token == TK_FOR.getValue()) {
+            forStat(ls, line);
+        } else if (ls.t.token == TK_REPEAT.getValue()) {
+            repeatStat(ls, line);
+        } else if (ls.t.token == TK_FUNCTION.getValue()) {
+            funcStat(ls, line);
+        } else if (ls.t.token == TK_LOCAL.getValue()) {
+            LuaLexer.luaXNext(ls);
+            if (testNext(ls, TK_FUNCTION.getValue())) {
+                localFunc(ls);
+            } else {
+                localStat(ls);
+            }
+        } else if (ls.t.token == TK_DBCOLON.getValue()) {
+            LuaLexer.luaXNext(ls);
+            labelStat(ls, strCheckName(ls), line);
+        } else if (ls.t.token == TK_RETURN.getValue()) {
+            LuaLexer.luaXNext(ls);
+            retStat(ls);
+        } else if (ls.t.token == TK_BREAK.getValue() || ls.t.token == TK_GOTO.getValue()) {
+            gotoStat(ls, LuaCode.luaKJump(ls.fs));
+        } else {
+            exprStat(ls);
+        }
+        ls.fs.freeReg = ls.fs.nactvar;
+        leaveLevel(ls);
     }
+
+    private static void mainFunc(LexState ls, FuncState fs) throws Exception {
+        BlockCnt bl = null;
+        ExpDesc v = null;
+        openFunc(ls, fs, bl);
+        fs.f.isVarArg = true;
+        initExp(v, ExpressionKind.VLOCAL, 0);
+        newUpValue(fs, ls.envn, v);
+        LuaLexer.luaXNext(ls);
+        statList(ls);
+        check(ls, TK_EOS.getValue());
+        closeFunc(ls);
+    }
+
+    LuaObject.LClosure luaYParser(
+            LuaState l,
+            ZIO z,
+            ZIO.MBuffer buff,
+            DynData dyd,
+            String name,
+            int firstChar) throws Exception {
+        LexState lexState = null;
+        FuncState funcState = null;
+        LuaObject.LClosure cl = null;
+//        LuaObject.setClLValue(l.top, cl);
+//        lexState.h = LuaTable
+        return cl;
+    }
+
 
 }

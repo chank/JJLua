@@ -822,7 +822,7 @@ public final class LuaCode {
         }
     }
 
-    public void luaKInfix(FuncState fs, BinOpr op, ExpDesc v) {
+    public static void luaKInfix(FuncState fs, BinOpr op, ExpDesc v) {
         switch (op) {
             case OPR_AND: {
                 luaKGoIfTrue(fs, v);
@@ -860,7 +860,7 @@ public final class LuaCode {
         }
     }
 
-    public void luaKPosFix(FuncState fs, BinOpr op, ExpDesc e1, ExpDesc e2, int line) {
+    public static void luaKPosFix(FuncState fs, BinOpr op, ExpDesc e1, ExpDesc e2, int line) {
         switch (op) {
             case OPR_ADD: {
                 assert e1.t == NO_JUMP;
