@@ -20,4 +20,14 @@ package com.chank.lua;
  * @author Chank
  */
 public final class GlobalState {
+
+    public LuaState.StringTable strt;
+    LuaTValue lRegistry;
+    int seed;
+    LuaState mainThread;
+    double version;
+    String tmName;
+    LuaObject.Table[] mt;
+    String[][] strCache;
+
 }

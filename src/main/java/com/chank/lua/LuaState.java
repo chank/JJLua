@@ -23,6 +23,9 @@ public final class LuaState {
     public static final int EXTRA_STACK = 5;
     public static final int BASIC_STAK_SIZE = 2 * Lua.LUA_MINSTACK;
 
+    public static final int KGC_NORMAL = 0;
+    public static final int KGC_EMERGENCY = 1;
+
     public static final class StringTable {
         public String[] hash;
         public int nuse;

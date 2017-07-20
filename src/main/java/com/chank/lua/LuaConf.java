@@ -19,23 +19,9 @@ package com.chank.lua;
 /**
  * @author Chank
  */
-public final class LuaFunc {
+public class LuaConf {
 
-    public static final int MAX_UP_VAL = 255;
-
-    public static final class UpVal {
-        LuaTValue v;
-        int refCount;
-        public static final class Open {
-            UpVal next;
-            int touched;
-        }
-        Open open;
-        LuaTValue value;
-    }
-
-    public static LuaObject.Proto luaFNewProto(LuaState l) {
-        LuaObject.Proto f = new LuaObject.Proto();
-        return f;
-    }
+    public static final int LUAI_MAX_STACK = 1000000;
+    public static final int LUA_ID_SIZE = 60;
+    public static final int LUAL_BUFFER_SIZE = 8192;
 }

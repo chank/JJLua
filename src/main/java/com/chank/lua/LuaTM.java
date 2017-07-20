@@ -19,23 +19,33 @@ package com.chank.lua;
 /**
  * @author Chank
  */
-public final class LuaFunc {
+public class LuaTM {
 
-    public static final int MAX_UP_VAL = 255;
-
-    public static final class UpVal {
-        LuaTValue v;
-        int refCount;
-        public static final class Open {
-            UpVal next;
-            int touched;
-        }
-        Open open;
-        LuaTValue value;
-    }
-
-    public static LuaObject.Proto luaFNewProto(LuaState l) {
-        LuaObject.Proto f = new LuaObject.Proto();
-        return f;
+    public static enum TMS {
+        TM_INDEX,
+        TM_NEWINDEX,
+        TM_GC,
+        TM_MODE,
+        TM_LEN,
+        TM_EQ,
+        TM_ADD,
+        TM_SUB,
+        TM_MUL,
+        TM_MOD,
+        TM_POW,
+        TM_DIV,
+        TM_IDIV,
+        TM_BAND,
+        TM_BOR,
+        TM_BXOR,
+        TM_SHL,
+        TM_SHR,
+        TM_UNM,
+        TM_BNOT,
+        TM_LT,
+        TM_LE,
+        TM_CONCAT,
+        TM_CALL,
+        TM_N
     }
 }
