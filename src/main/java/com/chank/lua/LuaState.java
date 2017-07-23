@@ -38,7 +38,7 @@ public final class LuaState {
         public CallInfo previous;
         public CallInfo next;
         public static final class L {
-            public LuaTValue base;
+            public StkId base;
             int saveDpc;
         }
         public L l;

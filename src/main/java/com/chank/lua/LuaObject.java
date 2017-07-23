@@ -118,7 +118,7 @@ public class LuaObject {
     }
 
     public static final class LClosure extends ClosureHeader {
-        public Proto[] p;
+        public Proto p;
         public LuaFunc.UpVal[] upVals = new LuaFunc.UpVal[1];
     }
 
