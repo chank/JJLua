@@ -86,11 +86,15 @@ public class LuaObject {
         public char flags;
         public char lSizeNode;
         public int sizeArray;
-        public LuaTValue array;
+        public LuaTValue[] array;
+        public Node[] node;
+        public Node lastFree;
+        public Table metaTable;
     }
 
     public static final class Node {
         public LuaTValue iVal;
+        public TKey iKey;
     }
 
     public static final class LocVar {
@@ -123,10 +127,32 @@ public class LuaObject {
         public LClosure l;
     }
 
+    public static final class Value {
+        Object p;
+        int b;
+    }
+
+    public static final class TValueFields {
+        public Value value;
+        public int tt;
+    }
+
+    public static final class TKey {
+        public static final class NK {
+            public TValueFields tValueFields;
+            public int next;
+        }
+        public NK nk;
+        public LuaTValue tvk;
+    }
+
+    public static int lmod(Node s, int size) {
+        return 0;
+    }
+
     public static Object val(LuaTValue o) {
         return o.value;
     }
-
 
     public static int rttype(LuaTValue o) {
         return o.tt;
