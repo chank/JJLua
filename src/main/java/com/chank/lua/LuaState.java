@@ -52,6 +52,16 @@ public final class LuaState {
         short callStatus;
     }
 
+    public static final class LX {
+        public byte[] extra;
+        public LuaState l;
+    }
+
+    public static final class LG {
+        public LX l;
+        public GlobalState g;
+    }
+
     public static final int CIST_OAH = 1 << 0;
     public static final int CIST_LUA = 1 << 1;
     public static final int CIST_HOOKED = 1 << 2;
@@ -82,4 +92,16 @@ public final class LuaState {
     public short nCCalls;
     public int hookMask;
     public byte allowHook;
+
+    public static LuaState luaNewState() {
+        int i;
+        LuaState luaState;
+        GlobalState g;
+        LG l= new LG();
+        luaState = l.l.l;
+        g = l.g;
+        g.strt.size = g.strt.nuse = 0;
+        g.strt.hash = null;
+        return luaState;
+    }
 }
