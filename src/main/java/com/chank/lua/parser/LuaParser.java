@@ -29,7 +29,7 @@ public final class LuaParser {
 
     public static final int MAX_VARS = 200;
 
-    static final class BlockCnt {
+    public static final class BlockCnt {
         public BlockCnt previous;
         public int firstLabel;
         public int firstGoto;
@@ -38,24 +38,24 @@ public final class LuaParser {
         public boolean isLoop;
     }
 
-    static final class VarDesc {
+    public static final class VarDesc {
         public short idx;
     }
 
-    static final class LabelDesc {
+    public static final class LabelDesc {
         public String name;
         public int pc;
         public int line;
         public char nactvar;
     }
 
-    static final class LabelList {
+    public static final class LabelList {
         public LabelDesc[] arr;
         public int n;
         public int size;
     }
 
-    static final class DynData {
+    public static final class DynData {
         public static final class ActVar {
             public VarDesc[] arr;
             public int n;

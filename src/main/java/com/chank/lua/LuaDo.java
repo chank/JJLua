@@ -16,6 +16,7 @@
 
 package com.chank.lua;
 
+import com.chank.lua.parser.LuaParser;
 import com.chank.lua.util.ZIO;
 
 import static com.chank.lua.Lua.LUA_ERRERR;
@@ -196,6 +197,7 @@ public final class LuaDo {
     public static final class SParser {
         public ZIO z;
         ZIO.MBuffer buff;
+        LuaParser.DynData dyd;
         String mode;
         String name;
     }
@@ -207,6 +209,20 @@ public final class LuaDo {
     }
 
     private int luaDProtectedParser(LuaState l, ZIO z, String name, String mode) {
-        return 0;
+        SParser p = new SParser();
+        int status = 0;
+        l.nny++;
+        p.z = z;
+        p.name = name;
+        p.mode = mode;
+        p.dyd.actVar.arr = null;
+        p.dyd.actVar.size = 0;
+        p.dyd.gt.arr = null;
+        p.dyd.gt.size = 0;
+        p.dyd.label.arr = null;
+        p.dyd.label.size = 0;
+        fParser(l);
+        l.nny --;
+        return status;
     }
 }
