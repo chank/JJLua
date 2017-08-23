@@ -16,6 +16,8 @@
 
 package com.chank.lua.util;
 
+import com.chank.lua.LuaState;
+
 /**
  * @author Chank
  */
@@ -58,8 +60,23 @@ public final class ZIO {
 
 
         public void resizeBuffer(int size) {
+            n = 0;
         }
 
+    }
+
+    public static void initBuff(LuaState l, MBuffer buff) {
+        buff.buffer = null;
+        buff.buffSize = 0;
+    }
+
+    public static void resizeBuffer(LuaState l, MBuffer buff, int size) {
+        buff.buffer = new char[size];
+        buff.buffSize = size;
+    }
+
+    public static void freeBuff(LuaState l, MBuffer buff) {
+        resizeBuffer(l, buff, 0);
     }
 
 }

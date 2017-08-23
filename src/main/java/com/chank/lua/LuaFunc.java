@@ -38,4 +38,17 @@ public final class LuaFunc {
         LuaObject.Proto f = new LuaObject.Proto();
         return f;
     }
+
+    public static void luaFClose(LuaState l, StkId level) {
+        UpVal uv;
+        uv = l.openUpVal;
+        while (l.openUpVal != null) {
+            l.openUpVal = uv.open.next;
+            if (uv.refCount == 0) {
+                uv = null;
+            } else {
+                uv.v = uv.value;
+            }
+        }
+    }
 }

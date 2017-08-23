@@ -17,6 +17,7 @@
 package com.chank.lua;
 
 import com.chank.lua.parser.LuaParser;
+import com.chank.lua.util.PFunc;
 import com.chank.lua.util.ZIO;
 
 import static com.chank.lua.Lua.LUA_ERRERR;
@@ -56,17 +57,6 @@ public final class LuaDo {
             } else {
             }
         }
-    }
-
-    public static int luaDRawRunProtected(LuaState l) {
-        short oldNCCalls = l.nCCalls;
-        LuaLongJmp lj = new LuaLongJmp();
-        lj.status = LUA_OK;
-        lj.previous = l.errorJmp;
-        l.errorJmp = lj;
-        l.errorJmp = lj.previous;
-        l.nCCalls = oldNCCalls;
-        return lj.status;
     }
 
     public static void correctStack(LuaState l, LuaTValue oldStack) {
@@ -190,13 +180,45 @@ public final class LuaDo {
         return 0;
     }
 
-    public static int luaDPCall(LuaState l) {
-        return 0;
+    private static int luaDRawRunProtected(LuaState l, PFunc f, Object ud) {
+        short oldCCalls = l.nCCalls;
+        LuaLongJmp lj = new LuaLongJmp();
+        lj.status = LUA_OK;
+        lj.previous = l.errorJmp;
+        l.errorJmp = lj;
+        try {
+            f.run(l, ud);
+        } catch (Exception e) {
+        }
+        l.errorJmp = lj.previous;
+        l.nCCalls = oldCCalls;
+        return lj.status;
+    }
+
+    public static int luaDPCall(LuaState l, PFunc func, Object u, LuaTValue oldTop, int ef) {
+        int status = 0;
+        LuaState.CallInfo oldCI = l.ci;
+        byte oldAllowHooks = l.allowHook;
+        short oldNNY = l.nny;
+        int oldErrFunc = l.errFunc;
+        l.errFunc = ef;
+        status = luaDRawRunProtected(l, func, u);
+        if (status != LUA_OK) {
+            StkId oldTop1 = restoreStack(l, oldTop);
+            LuaFunc.luaFClose(l, oldTop1);
+            setErrorObj(l, status, oldTop1);
+            l.ci = oldCI;
+            l.allowHook = oldAllowHooks;
+            l.nny = oldNNY;
+            luaDShrinkStack(l);
+        }
+        l.errFunc = oldErrFunc;
+        return status;
     }
 
     public static final class SParser {
         public ZIO z;
-        ZIO.MBuffer buff;
+        ZIO.MBuffer buff = new ZIO.MBuffer();
         LuaParser.DynData dyd;
         String mode;
         String name;
@@ -205,10 +227,20 @@ public final class LuaDo {
     private static void checkMode(LuaState l, String mode, String x) {
     }
 
-    private static void fParser(LuaState l) {
+    private static void fParser(LuaState l, Object ud) {
     }
 
-    private int luaDProtectedParser(LuaState l, ZIO z, String name, String mode) {
+    public static void pFunc(LuaState l, Object ud) {
+    }
+
+    public static void saveStack(LuaState l) {
+    }
+
+    public static StkId restoreStack(LuaState l, LuaTValue n) {
+        return null;
+    }
+
+    public static int luaDProtectedParser(LuaState l, ZIO z, String name, String mode) {
         SParser p = new SParser();
         int status = 0;
         l.nny++;
@@ -221,7 +253,14 @@ public final class LuaDo {
         p.dyd.gt.size = 0;
         p.dyd.label.arr = null;
         p.dyd.label.size = 0;
-        fParser(l);
+        ZIO.initBuff(l, p.buff);
+        luaDPCall(l, new PFunc() {
+            @Override
+            public void run(LuaState l, Object ud) {
+                fParser(l, ud);
+            }
+        }, p, l.top, l.errFunc);
+        ZIO.freeBuff(l, p.buff);
         l.nny --;
         return status;
     }

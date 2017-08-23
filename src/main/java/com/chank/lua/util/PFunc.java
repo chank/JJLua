@@ -14,23 +14,13 @@
  * limitations under the License.
  */
 
+package com.chank.lua.util;
 
-package com.chank.lua;
-
-import com.chank.lua.util.ZIO;
+import com.chank.lua.LuaState;
 
 /**
  * @author Chank
  */
-public final class JJLua {
-
-    public static Object eval(String script) {
-        LuaState l = LuaAuxLib.luaLNewState();
-        ZIO z = new ZIO();
-        String name = "eval";
-        String mode = "=stdin";
-        LuaDo.luaDProtectedParser(l, z, name, mode);
-        return null;
-    }
-
+public interface PFunc {
+    void run(LuaState l, Object ud);
 }
