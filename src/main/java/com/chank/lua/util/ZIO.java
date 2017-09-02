@@ -16,6 +16,7 @@
 
 package com.chank.lua.util;
 
+import com.chank.lua.ILuaReader;
 import com.chank.lua.LuaState;
 
 /**
@@ -26,7 +27,10 @@ public final class ZIO {
     public static final int EOZ = -1;
 
     private int n;
-    private byte[] p;
+    private char[] p;
+    ILuaReader reader;
+    Object data;
+    LuaState l;
 
     public static final class MBuffer {
         private char[] buffer;
@@ -65,6 +69,19 @@ public final class ZIO {
 
     }
 
+    public static int luaZFill(ZIO z) {
+        int size = 0;
+        LuaState l = z.l;
+        char[] buff;
+        buff = z.reader.luaRead(l, z.data, size);
+        if (buff == null || size == 0) {
+            return EOZ;
+        }
+        z.n = size - 1;
+        z.p = buff;
+        return z.p[0];
+    }
+
     public static void initBuff(LuaState l, MBuffer buff) {
         buff.buffer = null;
         buff.buffSize = 0;
@@ -77,6 +94,22 @@ public final class ZIO {
 
     public static void freeBuff(LuaState l, MBuffer buff) {
         resizeBuffer(l, buff, 0);
+    }
+
+    public static final byte getChar(ZIO z) {
+        return 0;
+    }
+
+    public static final void buffRemove(ZIO.MBuffer buff, int i) {
+        buff.n -= i;
+    }
+
+    public static final void resetBuffer(ZIO.MBuffer buff) {
+        buff.n = 0;
+    }
+
+    public static int zGetC(ZIO z) {
+        return z.n-- > 0 ? z.p[0] : luaZFill(z);
     }
 
 }

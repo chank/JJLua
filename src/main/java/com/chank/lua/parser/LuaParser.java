@@ -1370,7 +1370,7 @@ public final class LuaParser {
         closeFunc(ls);
     }
 
-    LuaObject.LClosure luaYParser(
+    public static LuaObject.LClosure luaYParser(
             LuaState l,
             ZIO z,
             ZIO.MBuffer buff,

@@ -17,10 +17,8 @@
 package com.chank.lua.parser;
 
 import com.chank.lua.LuaObject;
-import com.chank.lua.LuaState;
 import com.chank.lua.LuaTValue;
 import com.chank.lua.util.ZIO;
-import com.chank.lua.util.ZIOUtil;
 
 import static com.chank.lua.util.ZIO.EOZ;
 

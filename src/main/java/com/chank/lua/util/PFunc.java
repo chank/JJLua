@@ -22,5 +22,5 @@ import com.chank.lua.LuaState;
  * @author Chank
  */
 public interface PFunc {
-    void run(LuaState l, Object ud);
+    void run(LuaState l, Object ud) throws Exception;
 }

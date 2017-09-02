@@ -20,9 +20,7 @@ import com.chank.lua.parser.LuaParser;
 import com.chank.lua.util.PFunc;
 import com.chank.lua.util.ZIO;
 
-import static com.chank.lua.Lua.LUA_ERRERR;
-import static com.chank.lua.Lua.LUA_ERRRUN;
-import static com.chank.lua.Lua.LUA_OK;
+import static com.chank.lua.Lua.*;
 
 /**
  * @author Chank
@@ -227,7 +225,18 @@ public final class LuaDo {
     private static void checkMode(LuaState l, String mode, String x) {
     }
 
-    private static void fParser(LuaState l, Object ud) {
+    private static void fParser(LuaState l, Object ud) throws Exception {
+        LuaObject.LClosure cl = new LuaObject.LClosure();
+        SParser p = (SParser) ud;
+        int c = ZIO.zGetC(p.z);
+        if (c == LUA_SIGNATURE.charAt(0)) {
+            checkMode(l, p.mode, "binary");
+        } else {
+            checkMode(l, p.mode, "test");
+            cl = LuaParser.luaYParser(l, p.z, p.buff, p.dyd, p.name, c);
+        }
+        LuaFunc.luaFInitUpVals(l, cl);
+        assert cl.nupValues == cl.p.sizeUpValues;
     }
 
     public static void pFunc(LuaState l, Object ud) {
@@ -256,7 +265,7 @@ public final class LuaDo {
         ZIO.initBuff(l, p.buff);
         luaDPCall(l, new PFunc() {
             @Override
-            public void run(LuaState l, Object ud) {
+            public void run(LuaState l, Object ud) throws Exception {
                 fParser(l, ud);
             }
         }, p, l.top, l.errFunc);

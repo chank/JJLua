@@ -14,23 +14,13 @@
  * limitations under the License.
  */
 
-package com.chank.lua.util;
+package com.chank.lua;
 
 /**
  * @author Chank
  */
-public final class ZIOUtil {
+public interface ILuaReader {
 
-    public static final byte getChar(ZIO z) {
-        return 0;
-    }
-
-    public static final void buffRemove(ZIO.MBuffer buff, int i) {
-        buff.n -= i;
-    }
-
-    public static final void resetBuffer(ZIO.MBuffer buff) {
-        buff.n = 0;
-    }
+    char[] luaRead(LuaState l, Object ud, int sz);
 
 }
