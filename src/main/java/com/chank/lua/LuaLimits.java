@@ -76,4 +76,6 @@ public final class LuaLimits {
     public static final int LUAI_MAXCCALLS = 200;
 
     public static final int MAX_INT = LuaLimits.INT_MAX;
+
+    public static final int LUA_MIN_BUFFER = 32;
 }

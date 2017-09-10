@@ -1377,11 +1377,20 @@ public final class LuaParser {
             DynData dyd,
             String name,
             int firstChar) throws Exception {
-        LexState lexState = null;
-        FuncState funcState = null;
-        LuaObject.LClosure cl = null;
-//        LuaObject.setClLValue(l.top, cl);
-//        lexState.h = LuaTable
+        LexState lexState = new LexState();
+        FuncState funcState = new FuncState();
+        LuaObject.LClosure cl = LuaFunc.luaFNewLClosure(l, 1);
+        LuaDo.luaDIncTop(l);
+        lexState.h = LuaTable.luaHNew(l);
+        LuaDo.luaDIncTop(l);
+        funcState.f = cl.p = LuaFunc.luaFNewProto(l);
+        funcState.f.source = name;
+        lexState.buff = buff;
+        lexState.dyd = dyd;
+        dyd.actVar.n = dyd.gt.n = dyd.label.n = 0;
+        LuaLexer.setInput(l, lexState, z, funcState.f.source, firstChar);
+        mainFunc(lexState, funcState);
+//        l.top--;
         return cl;
     }
 

@@ -16,9 +16,12 @@
 
 package com.chank.lua.parser;
 
+import com.chank.lua.LuaLimits;
 import com.chank.lua.LuaObject;
+import com.chank.lua.LuaState;
 import com.chank.lua.LuaTValue;
 import com.chank.lua.util.ZIO;
+import jdk.nashorn.internal.parser.TokenKind;
 
 import static com.chank.lua.util.ZIO.EOZ;
 
@@ -70,7 +73,7 @@ public final class LuaLexer {
     }
 
     private static void next(LexState ls) {
-        ls.current = ZIOUtil.getChar(ls.z);
+        ls.current = ZIO.getChar(ls.z);
     }
 
     private static boolean checkNext1(LexState ls, int c) {
@@ -165,6 +168,19 @@ public final class LuaLexer {
             throw new Exception("chunk has too many lines");
     }
 
+    public static void setInput(LuaState l, LexState ls, ZIO z, String source, int firstChar) {
+        ls.t.token = 0;
+        ls.l = l;
+        ls.current = firstChar;
+        ls.lookahead.token = Reserved.TK_EOS.getValue();
+        ls.z = z;
+        ls.fs = null;
+        ls.lineNumber = 1;
+        ls.lastLine = 1;
+        ls.source = source;
+        ZIO.resizeBuffer(ls.l, ls.buff, LuaLimits.LUA_MIN_BUFFER);
+    }
+
     private static void readLongString(LexState ls, SemInfo semInfo, int sep) throws Exception {
         int line = ls.lineNumber;
         saveAndNext(ls);
@@ -220,7 +236,7 @@ public final class LuaLexer {
     private static int readHexaEsc(LexState ls) {
         int r = getHexa(ls);
         r = (r << 4) +getHexa(ls);
-        ZIOUtil.buffRemove(ls.buff, 2);
+        ZIO.buffRemove(ls.buff, 2);
         return r;
     }
 
@@ -239,7 +255,7 @@ public final class LuaLexer {
         }
         escCheck(ls, ls.current == '}', "missing '}'");
         next(ls); // skip '}'
-        ZIOUtil.buffRemove(ls.buff, i);
+        ZIO.buffRemove(ls.buff, i);
         return r;
     }
 
@@ -258,7 +274,7 @@ public final class LuaLexer {
             saveAndNext(ls);
         }
         escCheck(ls, r <= Byte.MAX_VALUE, "decimal escape too large");
-        ZIOUtil.buffRemove(ls.buff, i);
+        ZIO.buffRemove(ls.buff, i);
         return r;
     }
 
